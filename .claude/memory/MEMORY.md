@@ -10,4 +10,5 @@
 - [Backtest findings](backtest_findings.md) — Qué funciona, qué no, limitaciones de data
 - [TradingView setup](tradingview_setup.md) — Plan Basic 2-ind limit, Neptune cargados, draw_clear falla
 - [Market context APIs](market_context_refs.md) — Endpoints F&G, funding, on-chain
+- [Liquidations data](liquidations_data.md) — Coinglass/Binance/BingX APIs + FASE 2.5 matutina + OI proxy en TV
 - [Communication prefs](communication_prefs.md) — Español, directo, honest-first, disclaimers en leverage

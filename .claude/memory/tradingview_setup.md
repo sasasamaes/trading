@@ -11,9 +11,10 @@ originSessionId: 870cfb36-0066-4b6c-a1b7-eeaebc9a6ca8
 
 **Plan TradingView: Basic**
 - Máximo 2 indicadores por chart
-- Los 2 slots están ocupados por: `Neptune® - Signals™` + `Neptune® - Oscillator™`
+- Los 2 slots normalmente están ocupados por: `Neptune® - Signals™` + `Neptune® - Oscillator™`
 - **Consecuencia:** agregar Supertrend/EMA/RSI/MACD vía MCP no es posible sin primero remover un Neptune
 - Pine strategy se puede compilar pero no correr en Strategy Tester (mismo límite)
+- **2026-04-21:** usuario pidió añadir Volume + liquidaciones. Solo Volume se pudo añadir via MCP (built-in TV). "Open Interest" / "Liquidations" / "Crypto Open Interest" NO responden a `chart_manage_indicator` — MCP solo reconoce built-ins fijos (Volume, RSI, MACD, BB, EMA, Moving Average, Stochastic, etc.). Para OI o liq-scripts hay que añadir manualmente desde la UI. Workflow adoptado: Volume en TV + liquidaciones/OI via Binance Futures Data API (pública sin key) durante análisis matutino.
 
 **Bugs conocidos del MCP (2026-04):**
 

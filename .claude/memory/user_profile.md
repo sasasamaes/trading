@@ -20,9 +20,10 @@ originSessionId: 870cfb36-0066-4b6c-a1b7-eeaebc9a6ca8
 - Idioma interfaz TV: Español
 
 **Ventana operativa:**
-- Prefiere operar solo en la mañana
-- Entradas: MX 06:00 – 11:00
-- Cierre forzado: MX 12:00 (no mantiene posiciones abiertas durante el resto del día)
+- Análisis desde MX 06:00 AM
+- Entradas: MX 06:00 – 18:00 (6 AM – 6 PM)
+- Force exit default: **MX 18:00**
+- Cierre anticipado **MX 12:00 permitido** si: (a) ya acumuló ganancia buena del día, o (b) tiene pendiente/vuelta personal. No es regla estricta de cerrar a 12 MD.
 
 **Nivel de experiencia:**
 - Conoce conceptos básicos (entry, SL, TP, leverage) pero necesita reglas operativas explícitas y paso a paso

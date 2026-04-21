@@ -25,6 +25,29 @@ Si alguna respuesta es NO → recomendar skip + razón concreta + ofrecer resche
 - Hashrate: `bitinfocharts.com/bitcoin/`
 - Txs: `api.blockchain.info/charts/n-transactions?timespan=7days&format=json`
 
+## FASE 2.5: Liquidaciones / OI / L-S Ratio
+**Parte A — Binance public API (sin key, ejecutar en paralelo con FASE 2):**
+- OI hourly 24h: `https://fapi.binance.com/futures/data/openInterestHist?symbol=BTCUSDT&period=1h&limit=24`
+  - Calcular: delta 24h (%), biggest OI drop 1h (proxy de liq event), biggest rise.
+- L/S retail global: `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=BTCUSDT&period=1h&limit=6`
+- L/S top traders (smart money): `https://fapi.binance.com/futures/data/topLongShortAccountRatio?symbol=BTCUSDT&period=1h&limit=6`
+- Taker ratio: `https://fapi.binance.com/futures/data/takerlongshortRatio?symbol=BTCUSDT&period=1h&limit=6`
+
+**Parte B — Coinglass header (pedir screenshot al usuario si no lo tengo):**
+- Datos visibles en header superior de coinglass.com siempre:
+  1. Volumen 24h crypto total (+ %change)
+  2. Interés Abierto total (+ %change)
+  3. **Liquidación 24h** USD (+ %change) — el número más importante
+  4. Ratio Largo/Corto 24h (% long / % short)
+- API free NO sirve (401 "Upgrade plan"). Hobbyist $29/mo no justificable con capital <$100.
+- Cross-check: si L/S Coinglass global difiere del L/S Binance por cuenta → whales vs retail diverging (edge).
+
+Lecturas a reportar en tabla:
+- OI 24h change (%), biggest OI drop (USD M), último event de liq (si hay)
+- L/S retail actual — <0.8 = shorts crowded (setup bullish) / >1.5 = longs crowded (setup bearish)
+- L/S smart money vs retail — si divergen, smart money suele tener razón
+- Impacto en veredicto: si hay liq event reciente + L/S extremo → tiene peso fuerte en el sesgo final
+
 ## FASE 3: Correlaciones (crítico)
 - ETH 24h change (correlación esperada +0.85 con BTC)
 - SPX / NASDAQ direction (+0.30 a +0.60)
@@ -69,9 +92,10 @@ Niveles adicionales a incluir:
 - Fibonacci 0.618 último swing 1H
 
 ## FASE 8: Money Flow
-- Volumen 5m vs promedio 24h
+- Volumen 5m vs promedio 24h (Volume está cargado en TV)
 - Spikes > 2× avg: identificar rejection vs acumulación
 - Volume Profile POC del día si posible
+- Cross-check: si spike de volumen coincide con drop de OI (FASE 2.5) → confirma liq event real
 
 ## FASE 9: Patrones Técnicos
 - Últimas 5 velas 15m y 1H: dojis, hammers, engulfing

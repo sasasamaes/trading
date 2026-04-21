@@ -8,7 +8,8 @@ Guía operativa para sesiones de trading BTCUSDT.P con Claude. Lee esto al inici
 - **Zona horaria:** México (UTC-6)
 - **Capital activo:** $10 (objetivo inicial: escalar a $100)
 - **TradingView:** Plan Basic (máx 2 indicadores — Neptune Signals + Neptune Oscillator ocupan ambos slots)
-- **Ventana operativa:** MX 06:00 – 12:00 (cierre forzado 12:00 MX)
+- **Ventana operativa:** MX 06:00 – 18:00 (análisis desde 06:00, force exit 18:00 MX)
+  - Cierre anticipado 12:00 MX permitido si: ya acumuló ganancia buena del día **O** tiene un pendiente personal
 - **Estilo:** scalping intraday, no day-trading de múltiples días
 
 ## Estrategia oficial — DEPENDE DEL RÉGIMEN DE MERCADO
@@ -40,8 +41,8 @@ Validada con **100% WR** y **+15.1%** en backtest 3 días frente a 144 configs.
 | TP2 (40%) | **4.0 × SL** |
 | TP3 (20%) | **6.0 × SL** |
 | Leverage | **10x** |
-| Ventana | **MX 06:00 – 17:00** |
-| Force exit | **17:00 MX** |
+| Ventana | **MX 06:00 – 18:00** |
+| Force exit | **18:00 MX** (o 12:00 MX si ya hay ganancia del día / pendiente personal) |
 | Max 5 trades/día | 2 SLs → stop |
 
 **Entradas (4 filtros obligatorios, todos simultáneos):**
@@ -77,8 +78,13 @@ Antes de operar, verificar:
 1. **Fear & Greed Index** (api.alternative.me/fng) — extremos dan pistas contrarian
 2. **Funding rate** (OKX api `public/funding-rate?instId=BTC-USDT-SWAP`) — negativo sostenido = setup de short squeeze
 3. **Retail sentiment** (CoinGecko community votes) — cuando retail está 80%+ bullish, sesgo contrarian bearish
-4. **Volumen 5m/15m vs promedio** — spike sin seguimiento = rejection (trampa)
-5. **Sesión horaria óptima:** MX 06:00–10:00 (London/NY overlap, mayor volatilidad 0.85%)
+4. **Liquidaciones / OI / L-S ratio** (Binance Futures Data API, sin key) — ver `liquidations_data.md`
+   - OI hourly: `https://fapi.binance.com/futures/data/openInterestHist?symbol=BTCUSDT&period=1h&limit=24`
+   - L/S retail: `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=BTCUSDT&period=1h&limit=24`
+   - L/S smart money: `https://fapi.binance.com/futures/data/topLongShortAccountRatio?symbol=BTCUSDT&period=1h&limit=24`
+   - Buscar drops OI >$100M en 1h (liq event), L/S <0.8 (short squeeze setup) o >1.5 (long squeeze)
+5. **Volumen 5m/15m vs promedio** — spike sin seguimiento = rejection (trampa). TV chart tiene Volume cargado.
+6. **Sesión horaria óptima:** MX 06:00–10:00 (London/NY overlap, mayor volatilidad 0.85%)
 
 ## Hallazgos clave del backtesting
 
