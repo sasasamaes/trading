@@ -77,6 +77,26 @@ Si es LONG:
 - Liquidity pools arriba/abajo?
 - La señal opera EN LA DIRECCIÓN de un ChoCh/BoS reciente?
 
+### 5.5. Neptune Indicators (si disponibles)
+
+Si la comunidad usa Neptune (punkchainer's), chequea si están cargados en chart:
+
+```
+chart_get_state → busca "Neptune®" en studies
+data_get_study_values → lee Hyper Wave, Neptune Line, Directional Pressure
+data_get_pine_boxes study_filter="Neptune - SMC" → Order Blocks
+data_get_pine_labels study_filter="Neptune" → eventos estructurales
+```
+
+**Neptune score adicional (+3 pts posibles):**
+- **Neptune Line:** precio respeta la dirección (+1)
+- **Hyper Wave:** en zona extrema coherente con señal (+1)
+- **Neptune SMC:** OB/FVG en la zona de entry (+1)
+
+Si Neptune contradice fuerte (ej: Hyper Wave 85 pero la señal es LONG) → **-3 al score**.
+
+Ver `.claude/skills/neptune-indicators/SKILL.md` para detalles completos.
+
 ### 6. Chartismo / patrones
 
 - ¿Hay un H&S, triangle, flag en formación que apoye la señal?
@@ -110,7 +130,7 @@ Con capital actual del usuario (leer trading_log.md):
 
 Cuenta confluencias favor/contra:
 
-### Factores FAVOR (cada uno +1 punto):
+### Factores FAVOR (cada uno +1 punto, Neptune +3):
 1. Régimen del símbolo coherente con la señal
 2. Mean Reversion: 3+/4 filtros cumplidos
 3. ICT: Order Block o FVG soporta la señal
@@ -121,6 +141,9 @@ Cuenta confluencias favor/contra:
 8. S/R histórico coincide
 9. Volumen elevado coincide
 10. R:R ≥ 1:2
+11. **Neptune Line respeta** la dirección (+1)
+12. **Hyper Wave** en zona extrema coherente (+1)
+13. **Neptune SMC** Order Block en entry (+1)
 
 ### Factores CONTRA (cada uno -1 punto):
 1. Régimen VOLATILE o contrario

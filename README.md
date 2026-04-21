@@ -339,6 +339,7 @@ Atajos rápidos para acciones frecuentes:
 | `/alert` | Configura alerta custom |
 | `/ta` | **Análisis técnico avanzado** (ICT, armónicos, chartismo, Elliott, Fibonacci) |
 | `/signal` | **Valida señal externa** de comunidad con tu sistema (GO/NO-GO) |
+| `/neptune` | Lee outputs de indicadores **Neptune** (Bangchan10) en el chart |
 
 ### `.claude/skills/` — 8 Skills custom
 
@@ -355,6 +356,9 @@ Atajos rápidos para acciones frecuentes:
 - **adx-trend-strength** — ADX, +DI/-DI para fuerza y dirección de tendencia
 - **divergence-analysis** — Regular/hidden, bull/bear, clase A/B/C con RSI/MACD/OBV
 - **trendlines-sr** — Soportes, resistencias, trendlines, canales, breakouts vs fakeouts
+
+**Indicadores de comunidad:**
+- **neptune-indicators** — Neptune® Signals/Oscillator/SMC/Money Flow/Pivots (Bangchan10) — usa la salida de estos indicadores privados de la comunidad punkchainer's para validar cruzadamente
 
 **Análisis contextual:**
 - **btc-regime-analysis** — Deep dive de régimen con MTF + divergencias + cycle analysis
