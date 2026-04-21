@@ -38,15 +38,41 @@ trading/
 ├── .gitignore                     # Excluye /tmp, screenshots, node_modules
 ├── README.md                      # Este archivo
 └── .claude/
-    ├── settings.local.json        # Permisos y config del proyecto
-    └── agents/                    # Agentes Claude especializados
-        ├── morning-analyst.md     # Protocolo 17 fases 6 AM
-        ├── trade-validator.md     # Valida GO/NO-GO antes de entrar
-        ├── regime-detector.md     # Detecta RANGE/TRENDING/VOLATILE
-        ├── chart-drafter.md       # Dibuja niveles en TradingView
-        ├── risk-manager.md        # Calcula position sizing 2% rule
-        ├── journal-keeper.md      # Actualiza trading_log + review semanal
-        └── backtest-runner.md     # Corre backtests y grid search
+    ├── settings.json              # Config principal (statusline, hooks, permissions)
+    ├── settings.local.json        # Overrides locales (gitignored)
+    ├── agents/                    # 7 agentes Claude especializados
+    │   ├── morning-analyst.md     # Protocolo 17 fases 6 AM
+    │   ├── trade-validator.md     # Valida GO/NO-GO antes de entrar
+    │   ├── regime-detector.md     # Detecta RANGE/TRENDING/VOLATILE
+    │   ├── chart-drafter.md       # Dibuja niveles en TradingView
+    │   ├── risk-manager.md        # Calcula position sizing 2% rule
+    │   ├── journal-keeper.md      # Actualiza trading_log + review semanal
+    │   └── backtest-runner.md     # Corre backtests y grid search
+    ├── commands/                  # 11 slash commands
+    │   ├── morning.md             # /morning
+    │   ├── validate.md            # /validate
+    │   ├── regime.md              # /regime
+    │   ├── risk.md                # /risk
+    │   ├── journal.md             # /journal
+    │   ├── chart.md               # /chart
+    │   ├── backtest.md            # /backtest
+    │   ├── status.md              # /status
+    │   ├── review.md              # /review
+    │   ├── levels.md              # /levels
+    │   └── alert.md               # /alert
+    ├── scripts/                   # Shell scripts (hooks + helpers)
+    │   ├── statusline.sh          # Status line: cap/PnL/hora/ventana
+    │   ├── session_start.sh       # Hook: inyecta contexto al iniciar
+    │   ├── stop_hook.sh           # Hook: auto-commit journal al cerrar
+    │   ├── preprompt_check.sh     # Hook: detecta auto-sabotaje
+    │   ├── notify.sh              # Helper notificaciones macOS
+    │   ├── alert_setup.sh         # Monitor setup 4/4 en background
+    │   ├── daily_cron.sh          # Cron matutino 5:30 AM
+    │   └── README.md              # Docs de los scripts
+    └── skills/                    # 3 skills custom del dominio
+        ├── btc-regime-analysis/   # Deep dive análisis régimen
+        ├── btc-on-chain/          # Métricas on-chain
+        └── trade-psychology/      # Framework disciplina mental
 
 # Repos externos (no incluidos en este repo):
 ├── tradingview-mcp/               # MCP server de TradingView (submódulo externo)
@@ -278,7 +304,7 @@ Template para registrar cada trade con todos sus datos. Obligatorio.
 ### `RISK_CALCULATOR.md`
 Fórmulas de position sizing, cálculo de SL/TP basado en capital.
 
-### `.claude/agents/` — Agentes especializados
+### `.claude/agents/` — 7 Agentes especializados
 
 Claude detectará automáticamente cuál invocar según tu pregunta:
 
@@ -292,11 +318,57 @@ Claude detectará automáticamente cuál invocar según tu pregunta:
 | **journal-keeper** | "cierro día", "journal", "log trade", "review semana" |
 | **backtest-runner** | "backtest X", "probar esta config", "grid search" |
 
-Ejemplos:
-- "morning analysis" → dispara análisis completo de 17 fases
-- "¿entro LONG en 75,500?" → valida los 4 filtros + GO/NO-GO
-- "size para $0.30 SL distance" → calcula posición exacta
-- "cierro día, PnL $1.20" → actualiza journal automáticamente
+### `.claude/commands/` — 11 Slash commands
+
+Atajos rápidos para acciones frecuentes:
+
+| Comando | Acción |
+|---|---|
+| `/morning` | Análisis matutino completo (17 fases) |
+| `/validate` | Valida entry con 4 filtros (GO/NO-GO) |
+| `/regime` | Detecta régimen rápido |
+| `/risk` | Position sizing con regla 2% |
+| `/journal` | Actualiza log del día |
+| `/chart` | Limpia y redibuja niveles en TV |
+| `/backtest` | Ejecuta backtest/grid search |
+| `/status` | Estado sistema (cap, trades, hora) |
+| `/review` | Review semanal con métricas |
+| `/levels` | Niveles técnicos actuales |
+| `/alert` | Configura alerta custom |
+
+### `.claude/skills/` — 3 Skills custom
+
+- **btc-regime-analysis** — Deep dive de régimen con MTF + divergencias + cycle analysis
+- **btc-on-chain** — Análisis on-chain (hashrate, flows, whales, MVRV)
+- **trade-psychology** — Framework para manejar tilt, FOMO, revenge trading, overconfidence
+
+### `.claude/scripts/` — Automatización
+
+- **statusline.sh** — Status line siempre visible: `💰 $11.14 (+$1.14) │ 📊 0/3 │ 🟢 VENT │ 🕐 MX 06:00 │ BTC.P`
+- **session_start.sh** — Carga contexto al iniciar Claude (capital, reglas, comandos)
+- **stop_hook.sh** — Auto-commit del journal al cerrar sesión
+- **preprompt_check.sh** — Detecta "arriesgar todo", "mover SL", "aumentar leverage" y alerta
+- **notify.sh** — Notificaciones nativas macOS
+- **alert_setup.sh** — Monitor de setup 4/4 en background
+- **daily_cron.sh** — Recordatorio matutino 5:30 AM (vía cron/launchd)
+
+### Hooks configurados en `settings.json`
+
+| Hook | Acción |
+|---|---|
+| **SessionStart** | Inyecta contexto trading automáticamente |
+| **Stop** | Auto-commit del journal si hay cambios |
+| **UserPromptSubmit** | Detecta palabras de auto-sabotaje y advierte |
+
+### Status line persistente
+
+Siempre visible en tu terminal:
+
+```
+💰 $11.14 (+$1.14) │ 📊 0/3 │ 🟢 VENT │ 🕐 MX 06:00 │ BTC.P
+```
+
+Muestra: capital actual, delta desde inicial, trades hoy, si estás en ventana, hora MX, símbolo.
 
 ---
 

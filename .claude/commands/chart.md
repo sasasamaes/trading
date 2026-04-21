@@ -1,0 +1,27 @@
+---
+description: Limpia chart TradingView y redibuja niveles actuales
+allowed-tools: Agent
+---
+
+Invoca el agente `chart-drafter` para actualizar el chart de TradingView.
+
+Acciones:
+1. Limpiar TODOS los dibujos previos (via context menu workaround)
+2. Calcular niveles actualizados:
+   - Donchian(15) H/L
+   - Bollinger Bands(20,2)
+   - Zonas de entrada (±0.1%)
+   - SL/TP1/TP2/TP3 para LONG y SHORT
+3. Dibujar todo en chart con colores:
+   - Naranja (Donchian High)
+   - Cyan (Donchian Low)
+   - Rojo dashed (SLs)
+   - Verde (TPs)
+   - Línea vertical naranja (cierre 17:00 MX)
+4. Texto superior con resumen
+
+Opciones (vía argumentos):
+- "con niveles extra" → añade PDH/PDL, Weekly Open, VWAP
+- "breakout" → dibuja setup de Donchian Breakout en vez de Mean Reversion
+
+$ARGUMENTS
