@@ -1,0 +1,51 @@
+# macOS
+.DS_Store
+._*
+
+# Temp data / backtest artifacts
+/tmp/
+*.json
+!package.json
+!package-lock.json
+
+# Screenshots (can be large)
+tradingview-mcp/screenshots/
+**/screenshots/
+
+# Logs
+*.log
+*.pid
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment secrets
+.env
+.env.local
+.env.*.local
+*credentials*
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+
+# Node
+node_modules/
+
+# OS
+Thumbs.db
+
+# Claude project workdir (if any)
+.claude/projects/
+
+# Nested git repos (tracked separately upstream)
+claude-tradingview-mcp-trading/
+tradingview-mcp/

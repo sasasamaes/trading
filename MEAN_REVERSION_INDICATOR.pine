@@ -1,0 +1,126 @@
+//@version=6
+indicator("Mean Reversion Signals — BTC Scalping 15m",
+     shorttitle="MR Signals",
+     overlay=true,
+     max_labels_count=100,
+     max_lines_count=100)
+
+// ============ INPUTS ============
+gDonc = "Donchian Channel"
+donLen = input.int(15, "Donchian Length", minval=2, group=gDonc)
+edgePct = input.float(0.1, "Edge Tolerance %", minval=0.0, maxval=1.0, step=0.05, group=gDonc)
+
+gBB = "Bollinger Bands"
+bbLen = input.int(20, "BB Length", group=gBB)
+bbMult = input.float(2.0, "BB StdDev", step=0.1, group=gBB)
+
+gRSI = "RSI Filter"
+rsiLen = input.int(14, "RSI Length", group=gRSI)
+rsiOS = input.int(35, "RSI Oversold", group=gRSI)
+rsiOB = input.int(65, "RSI Overbought", group=gRSI)
+
+gRisk = "Risk Management"
+atrLen = input.int(14, "ATR Length", group=gRisk)
+slAtrMult = input.float(1.5, "SL = ATR x", step=0.1, group=gRisk)
+tp1Mult = input.float(2.5, "TP1 = SL x", step=0.1, group=gRisk)
+tp2Mult = input.float(4.0, "TP2 = SL x", step=0.1, group=gRisk)
+tp3Mult = input.float(6.0, "TP3 = SL x", step=0.1, group=gRisk)
+
+gSession = "Trading Window UTC"
+useWindow = input.bool(true, "Filter by time", group=gSession)
+winStart = input.int(12, "Start UTC (MX+6)", minval=0, maxval=23, group=gSession)
+winEnd = input.int(23, "End UTC", minval=0, maxval=23, group=gSession)
+
+showChannels = input.bool(true, "Show channels", group="Display")
+showLabels = input.bool(true, "Show labels", group="Display")
+showZones = input.bool(true, "Show zones", group="Display")
+
+// ============ CALCULATIONS ============
+donHigh = ta.highest(high, donLen)[1]
+donLow  = ta.lowest(low, donLen)[1]
+basis = ta.sma(close, bbLen)
+dev   = bbMult * ta.stdev(close, bbLen)
+bbUp  = basis + dev
+bbLo  = basis - dev
+rsiVal = ta.rsi(close, rsiLen)
+atrVal = ta.atr(atrLen)
+
+inWindow = not useWindow or (hour >= winStart and hour < winEnd)
+edgeLong  = donLow  * (1 + edgePct/100)
+edgeShort = donHigh * (1 - edgePct/100)
+
+// ============ SIGNALS (4 filters must align) ============
+longPriceTouch = low <= edgeLong
+longRSI        = rsiVal < rsiOS
+longBB         = low <= bbLo
+longGreenClose = close > open
+longSignal     = longPriceTouch and longRSI and longBB and longGreenClose and inWindow and barstate.isconfirmed
+
+shortPriceTouch = high >= edgeShort
+shortRSI        = rsiVal > rsiOB
+shortBB         = high >= bbUp
+shortRedClose   = close < open
+shortSignal     = shortPriceTouch and shortRSI and shortBB and shortRedClose and inWindow and barstate.isconfirmed
+
+// ============ PLOTS ============
+plot(showChannels ? donHigh : na, "Donchian H", color=color.new(color.orange, 20), linewidth=2)
+plot(showChannels ? donLow  : na, "Donchian L", color=color.new(color.aqua, 20), linewidth=2)
+p1 = plot(showChannels ? bbUp : na, "BB Upper", color=color.new(color.purple, 40))
+p2 = plot(showChannels ? bbLo : na, "BB Lower", color=color.new(color.purple, 40))
+plot(showChannels ? basis : na, "BB Mid", color=color.new(color.gray, 40))
+fill(p1, p2, color=color.new(color.purple, 92))
+
+bgcolor(showZones and high >= edgeShort and high < donHigh*1.005 ? color.new(color.red, 90) : na)
+bgcolor(showZones and low  <= edgeLong  and low  > donLow*0.995 ? color.new(color.lime, 90) : na)
+
+plotshape(longSignal,  "LONG",  shape.triangleup,   location.belowbar, color=color.lime, size=size.normal, text="LONG")
+plotshape(shortSignal, "SHORT", shape.triangledown, location.abovebar, color=color.red,  size=size.normal, text="SHORT")
+
+// ============ LABELS ============
+if showLabels and longSignal
+    entry = close
+    slDist = atrVal * slAtrMult
+    sl  = entry - slDist
+    tp1 = entry + slDist * tp1Mult
+    tp2 = entry + slDist * tp2Mult
+    tp3 = entry + slDist * tp3Mult
+    txt = "LONG " + str.tostring(entry, "#.#") + "\nSL " + str.tostring(sl, "#.#") + "\nTP1 " + str.tostring(tp1, "#.#") + "\nTP2 " + str.tostring(tp2, "#.#") + "\nTP3 " + str.tostring(tp3, "#.#")
+    label.new(bar_index, low, txt, yloc=yloc.belowbar, color=color.new(color.green, 20), textcolor=color.white, style=label.style_label_up, size=size.small)
+
+if showLabels and shortSignal
+    entry = close
+    slDist = atrVal * slAtrMult
+    sl  = entry + slDist
+    tp1 = entry - slDist * tp1Mult
+    tp2 = entry - slDist * tp2Mult
+    tp3 = entry - slDist * tp3Mult
+    txt = "SHORT " + str.tostring(entry, "#.#") + "\nSL " + str.tostring(sl, "#.#") + "\nTP1 " + str.tostring(tp1, "#.#") + "\nTP2 " + str.tostring(tp2, "#.#") + "\nTP3 " + str.tostring(tp3, "#.#")
+    label.new(bar_index, high, txt, yloc=yloc.abovebar, color=color.new(color.red, 20), textcolor=color.white, style=label.style_label_down, size=size.small)
+
+// ============ ALERTS ============
+alertcondition(longSignal,  title="LONG Mean Reversion", message="LONG BTCUSDT - Revisa chart para niveles")
+alertcondition(shortSignal, title="SHORT Mean Reversion", message="SHORT BTCUSDT - Revisa chart para niveles")
+
+// ============ INFO TABLE ============
+var table infoTable = table.new(position.top_right, 2, 8, bgcolor=color.new(color.black, 80))
+
+if barstate.islast
+    table.cell(infoTable, 0, 0, "MR 15m", bgcolor=color.new(color.blue, 50), text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 0, "Estado", bgcolor=color.new(color.blue, 50), text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 0, 1, "Donchian H", text_color=color.orange, text_size=size.tiny)
+    table.cell(infoTable, 1, 1, str.tostring(donHigh, "#.#"), text_color=color.orange, text_size=size.tiny)
+    table.cell(infoTable, 0, 2, "Donchian L", text_color=color.aqua, text_size=size.tiny)
+    table.cell(infoTable, 1, 2, str.tostring(donLow, "#.#"), text_color=color.aqua, text_size=size.tiny)
+    table.cell(infoTable, 0, 3, "RSI", text_color=color.white, text_size=size.tiny)
+    rsiColor = rsiVal > rsiOB ? color.red : rsiVal < rsiOS ? color.lime : color.gray
+    table.cell(infoTable, 1, 3, str.tostring(rsiVal, "#.#"), text_color=rsiColor, text_size=size.tiny)
+    table.cell(infoTable, 0, 4, "ATR", text_color=color.white, text_size=size.tiny)
+    table.cell(infoTable, 1, 4, str.tostring(atrVal, "#.#"), text_color=color.white, text_size=size.tiny)
+    table.cell(infoTable, 0, 5, "En ventana", text_color=color.white, text_size=size.tiny)
+    table.cell(infoTable, 1, 5, inWindow ? "SI" : "NO", text_color=inWindow ? color.lime : color.red, text_size=size.tiny)
+    longScore = (longPriceTouch ? 1 : 0) + (longRSI ? 1 : 0) + (longBB ? 1 : 0) + (longGreenClose ? 1 : 0)
+    shortScore = (shortPriceTouch ? 1 : 0) + (shortRSI ? 1 : 0) + (shortBB ? 1 : 0) + (shortRedClose ? 1 : 0)
+    table.cell(infoTable, 0, 6, "LONG", text_color=color.lime, text_size=size.tiny)
+    table.cell(infoTable, 1, 6, str.tostring(longScore) + "/4", text_color=longScore==4?color.lime:color.gray, text_size=size.tiny)
+    table.cell(infoTable, 0, 7, "SHORT", text_color=color.red, text_size=size.tiny)
+    table.cell(infoTable, 1, 7, str.tostring(shortScore) + "/4", text_color=shortScore==4?color.red:color.gray, text_size=size.tiny)
