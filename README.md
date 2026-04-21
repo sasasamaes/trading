@@ -340,12 +340,19 @@ Atajos rápidos para acciones frecuentes:
 
 ### `.claude/skills/` — 8 Skills custom
 
-**Análisis técnico avanzado:**
+**Análisis técnico avanzado (metodologías):**
 - **smart-money-ict** — Order Blocks, Fair Value Gaps, Liquidity, BoS/ChoCh, Premium/Discount
 - **harmonic-patterns** — Gartley, Bat, Butterfly, Crab, Shark, Cypher con Fibonacci
 - **classic-chartism** — H&S, triangles, flags, wedges, double/triple tops
 - **elliott-waves** — 5-impulsivo + 3-correctivo con Fibonacci targets
 - **fibonacci-tools** — Retracements, extensions, time zones, confluencia MTF
+
+**Indicadores técnicos:**
+- **stochastic-oscillator** — Full/Slow/Stoch RSI, crossovers, divergencias
+- **bollinger-bands-advanced** — Squeeze, walking band, %B, bandwidth, TTM
+- **adx-trend-strength** — ADX, +DI/-DI para fuerza y dirección de tendencia
+- **divergence-analysis** — Regular/hidden, bull/bear, clase A/B/C con RSI/MACD/OBV
+- **trendlines-sr** — Soportes, resistencias, trendlines, canales, breakouts vs fakeouts
 
 **Análisis contextual:**
 - **btc-regime-analysis** — Deep dive de régimen con MTF + divergencias + cycle analysis
