@@ -36,7 +36,17 @@ trading/
 ├── QUICK_START_GUIDE.md           # Guía rápida de arranque
 ├── RISK_CALCULATOR.md             # Fórmulas de position sizing
 ├── .gitignore                     # Excluye /tmp, screenshots, node_modules
-└── README.md                      # Este archivo
+├── README.md                      # Este archivo
+└── .claude/
+    ├── settings.local.json        # Permisos y config del proyecto
+    └── agents/                    # Agentes Claude especializados
+        ├── morning-analyst.md     # Protocolo 17 fases 6 AM
+        ├── trade-validator.md     # Valida GO/NO-GO antes de entrar
+        ├── regime-detector.md     # Detecta RANGE/TRENDING/VOLATILE
+        ├── chart-drafter.md       # Dibuja niveles en TradingView
+        ├── risk-manager.md        # Calcula position sizing 2% rule
+        ├── journal-keeper.md      # Actualiza trading_log + review semanal
+        └── backtest-runner.md     # Corre backtests y grid search
 
 # Repos externos (no incluidos en este repo):
 ├── tradingview-mcp/               # MCP server de TradingView (submódulo externo)
@@ -114,8 +124,12 @@ cd ~/Documents/trading
 claude
 ```
 
-### 3. Pega el prompt matutino
-Copia el bloque `PROMPT PRINCIPAL` de `MORNING_PROMPT.md`, pégalo en Claude.
+### 3. Invoca el agente matutino
+Dile a Claude: **"análisis matutino"** o **"morning analysis"**.
+
+Claude detectará automáticamente el agente `morning-analyst` y ejecutará el protocolo completo.
+
+Alternativamente, copia el bloque `PROMPT PRINCIPAL` de `MORNING_PROMPT.md`.
 
 Claude ejecuta 17 fases en ~5-8 minutos:
 - Auto-check personal
@@ -263,6 +277,26 @@ Template para registrar cada trade con todos sus datos. Obligatorio.
 
 ### `RISK_CALCULATOR.md`
 Fórmulas de position sizing, cálculo de SL/TP basado en capital.
+
+### `.claude/agents/` — Agentes especializados
+
+Claude detectará automáticamente cuál invocar según tu pregunta:
+
+| Agente | Se activa cuando preguntas... |
+|---|---|
+| **morning-analyst** | "análisis matutino", "morning analysis", "empezar sesión" |
+| **trade-validator** | "¿entro?", "valida entry", "4 filtros alineados?" |
+| **regime-detector** | "¿qué régimen?", "¿range o trend?", "qué estrategia uso" |
+| **chart-drafter** | "dibuja niveles", "actualiza chart", "limpia y redibuja" |
+| **risk-manager** | "cuánto abro", "size del trade", "position sizing" |
+| **journal-keeper** | "cierro día", "journal", "log trade", "review semana" |
+| **backtest-runner** | "backtest X", "probar esta config", "grid search" |
+
+Ejemplos:
+- "morning analysis" → dispara análisis completo de 17 fases
+- "¿entro LONG en 75,500?" → valida los 4 filtros + GO/NO-GO
+- "size para $0.30 SL distance" → calcula posición exacta
+- "cierro día, PnL $1.20" → actualiza journal automáticamente
 
 ---
 
