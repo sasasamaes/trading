@@ -317,6 +317,7 @@ Claude detectará automáticamente cuál invocar según tu pregunta:
 | **risk-manager** | "cuánto abro", "size del trade", "position sizing" |
 | **journal-keeper** | "cierro día", "journal", "log trade", "review semana" |
 | **backtest-runner** | "backtest X", "probar esta config", "grid search" |
+| **technical-analyst** | "TA profundo", "smart money", "armónico", "elliot", "fibonacci" |
 
 ### `.claude/commands/` — 11 Slash commands
 
@@ -335,9 +336,18 @@ Atajos rápidos para acciones frecuentes:
 | `/review` | Review semanal con métricas |
 | `/levels` | Niveles técnicos actuales |
 | `/alert` | Configura alerta custom |
+| `/ta` | **Análisis técnico avanzado** (ICT, armónicos, chartismo, Elliott, Fibonacci) |
 
-### `.claude/skills/` — 3 Skills custom
+### `.claude/skills/` — 8 Skills custom
 
+**Análisis técnico avanzado:**
+- **smart-money-ict** — Order Blocks, Fair Value Gaps, Liquidity, BoS/ChoCh, Premium/Discount
+- **harmonic-patterns** — Gartley, Bat, Butterfly, Crab, Shark, Cypher con Fibonacci
+- **classic-chartism** — H&S, triangles, flags, wedges, double/triple tops
+- **elliott-waves** — 5-impulsivo + 3-correctivo con Fibonacci targets
+- **fibonacci-tools** — Retracements, extensions, time zones, confluencia MTF
+
+**Análisis contextual:**
 - **btc-regime-analysis** — Deep dive de régimen con MTF + divergencias + cycle analysis
 - **btc-on-chain** — Análisis on-chain (hashrate, flows, whales, MVRV)
 - **trade-psychology** — Framework para manejar tilt, FOMO, revenge trading, overconfidence
