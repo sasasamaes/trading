@@ -2,7 +2,7 @@
 
 Sistema completo de trading algorítmico-asistido para BTCUSDT.P en BingX, construido sobre TradingView + Claude Code + Pine Script.
 
-**Status actual:** Sistema validado con primer trade ganador (+11.4% / $10 → $11.14).
+**Status actual:** Sistema validado con 2 trades ganadores (+22.3% / $10 → $12.23).
 **Objetivo:** Escalar cuenta de $10 → $100 → FTMO $10k fundeado en ~4-6 meses.
 
 ---
@@ -17,6 +17,7 @@ Un **sistema operativo de trading** que combina:
 - **Memoria persistente en Claude** que recuerda tu perfil, reglas y progreso
 - **Journal obligatorio** de cada trade + review semanal
 - **Integración con TradingView** via MCP (Claude dibuja niveles, detecta señales)
+- **Capa ML** (NLP sentiment + XGBoost supervisado) como 5° filtro opcional
 
 No es un bot automatizado. Es una **disciplina acompañada** — Claude hace el análisis pesado, tú ejecutas con reglas.
 
@@ -73,6 +74,24 @@ trading/
         ├── btc-regime-analysis/   # Deep dive análisis régimen
         ├── btc-on-chain/          # Métricas on-chain
         └── trade-psychology/      # Framework disciplina mental
+
+├── scripts/ml_system/             # Capa ML (NLP + XGBoost + DL scaffold)
+│   ├── README.md                  # Doc maestra del sistema ML
+│   ├── setup.sh                   # Instalador de dependencias
+│   ├── requirements.txt           # Deps Python (requests, vader, xgboost, ...)
+│   ├── sentiment/                 # NLP Sentiment Aggregator (ACTIVO)
+│   │   ├── aggregator.py          # Entrypoint /sentiment
+│   │   └── sources.py             # F&G + Reddit + News RSS + Funding
+│   ├── supervised/                # XGBoost LONG/SHORT (ACTIVO)
+│   │   ├── data_loader.py         # Binance klines API (sin key)
+│   │   ├── features.py            # 12 features técnicas
+│   │   ├── train.py               # Entrena + calibra + guarda modelo
+│   │   ├── predict.py             # Score 0-100 sobre setup actual
+│   │   └── model/                 # Modelo .pkl + metrics.json (gitignored)
+│   ├── deep/                      # LSTM scaffold (NO ACTIVO)
+│   │   ├── README.md              # Precondiciones de activación
+│   │   └── lstm_scaffold.py       # Arquitectura lista para activar
+│   └── shared/config.py           # Paths y constantes
 
 # Repos externos (no incluidos en este repo):
 ├── tradingview-mcp/               # MCP server de TradingView (submódulo externo)
@@ -190,6 +209,209 @@ Claude ejecuta 17 fases en ~5-8 minutos:
 
 ---
 
+## 🤖 Capa ML (Sentiment + XGBoost + LSTM scaffold)
+
+Sistema complementario en `scripts/ml_system/` que NO reemplaza las reglas mecánicas. Se usa como **5° filtro** cuando los 4 filtros técnicos ya están alineados.
+
+### Componentes
+
+| Componente | Estado | Qué hace |
+|---|---|---|
+| **NLP Sentiment** | ✅ Activo | F&G 35% + News VADER 30% + Reddit VADER 20% + Funding contrarian 15% → score 0-100 |
+| **XGBoost Supervisado** | ✅ Activo | Predice probabilidad TP-first (LONG y SHORT) usando 12 features técnicas, calibrado con Platt |
+| **LSTM Deep Learning** | ⏸️ Scaffold | No activo hasta cumplir precondiciones (capital ≥$500, n≥100 trades, etc.) |
+
+### Setup inicial (primera vez)
+
+```bash
+cd scripts/ml_system
+./setup.sh                              # instala requests, vader, xgboost, pandas, sklearn
+brew install libomp                     # runtime para xgboost en Mac
+python3 supervised/train.py --days 365  # entrena modelo (descarga ~100MB de Binance)
+```
+
+### Uso diario
+
+```bash
+# Sentiment (al iniciar sesión matutina)
+python3 scripts/ml_system/sentiment/aggregator.py
+# o slash command
+/sentiment
+
+# ML score sobre estado actual (cuando 4 filtros técnicos estén alineados)
+python3 scripts/ml_system/supervised/predict.py --auto
+# o slash command
+/ml
+
+# Re-entrenar (cada 2-4 semanas o si regime shift)
+/ml-train
+```
+
+### Cómo interpretar scores
+
+**Sentiment:**
+| Score | Label | Acción |
+|---|---|---|
+| 0-19 | 🔴 EXTREME FEAR | Contrarian bullish — setups LONG tienen edge |
+| 20-34 | 🟠 FEAR | Ligero bullish — cuidado con shorts |
+| 35-69 | 🟡 NEUTRAL | Operar técnico puro, sin sesgo |
+| 70-84 | 🟢 GREED | Ligero bearish — cuidado con longs tardíos |
+| 85-100 | 🔴 EXTREME GREED | Contrarian bearish — setups SHORT tienen edge |
+
+**ML Score (probabilidad TP-first):**
+| Score | Acción |
+|---|---|
+| <35 | 🔴 BAJO — pasar o size 50% aunque técnico sea GO |
+| 35-55 | 🟡 NEUTRAL — decisión por técnico puro |
+| 55-70 | 🟢 FAVORABLE — modelo confirma el setup |
+| >70 | 🟢 ALTO — edge histórico alto |
+
+### Reality check honest-first
+
+- AUC típico en crypto 15m: **0.52-0.62**. Más es sospechoso de overfitting.
+- El modelo NO encuentra setups — solo confirma/cuestiona los que tu sistema técnico ya detectó.
+- `/ml-train` corre automáticamente un reality check y warna si AUC >0.65 (posible leakage).
+- Con n<20 trades reales, la varianza supera la señal. Trata el score ML como un voto más.
+
+---
+
+## 📋 Paso a paso diario (workflow óptimo)
+
+Un día operativo completo usando TODO el stack (técnico + sentiment + ML). Ventana **MX 06:00 – 23:59** (cripto 24/7, pero no dormir con trade abierto).
+
+### 🌅 MX 05:30 — Despertar
+
+```bash
+cd ~/Documents/trading
+claude
+```
+
+El status line muestra: `💰 $12.23 (+$2.23) │ 📊 0/3 │ 🟢 VENT │ 🕐 MX 05:30 │ BTC.P`
+
+### 🌄 MX 05:45-06:00 — Check personal
+
+- [ ] Dormí 6+ horas
+- [ ] Desayuné algo
+- [ ] Estoy mentalmente claro (no tilt, no FOMO, no revenge)
+- [ ] No estoy "recuperando" pérdida de ayer
+
+Si alguno falla → **NO operar hoy**.
+
+### ☀️ MX 06:00 — Análisis matutino (17 fases + ML)
+
+```
+/morning
+```
+
+El agente `morning-analyst` ejecuta el protocolo completo en 5-8 min. Al finalizar, complementa con:
+
+```
+/sentiment          # score NLP agregado para calibrar sesgo del día
+/regime             # confirmación rápida de régimen (RANGE vs TRENDING vs VOLATILE)
+/chart              # dibuja niveles actualizados en TradingView
+```
+
+**Veredicto posible:** `ENTRAR LONG` / `ENTRAR SHORT` / `ESPERAR` / `NO OPERAR`.
+
+### 🎯 MX 06:00 – 23:30 — Monitoreo de setup
+
+Durante la ventana, espera a que BTC toque una zona operativa (Donchian High/Low ±0.1%). Puedes dejar alerta activa:
+
+```
+/alert 4 filtros
+```
+
+**Cuando el setup 4/4 aparezca:**
+
+```
+/validate           # confirma los 4 filtros técnicos (GO/NO-GO)
+/ml                 # 5° filtro: probabilidad TP-first según modelo
+/risk               # position sizing según regla 2%
+```
+
+**Decisión matriz:**
+
+| Técnico 4/4 | ML Score | Sentiment | Acción |
+|---|---|---|---|
+| ✅ GO | >55 | Alineado | **ENTRAR** con size normal |
+| ✅ GO | 40-55 | Alineado o neutral | **ENTRAR** con size 75% |
+| ✅ GO | <40 | — | **REDUCIR size a 50%** o esperar siguiente setup |
+| ✅ GO | — | Contrario extremo (setup LONG + sentiment 90) | **PASAR** — no pelees el sentiment extremo |
+| ❌ 3/4 o menos | — | — | **NO ENTRAR** — nunca forzar |
+
+### 💥 Al entrar — Disciplina mecánica
+
+1. Loggear **ANTES** de pulsar "Abrir" en BingX:
+   - Hora MX exacta
+   - Precio de entry
+   - Los 4 filtros con checkmark uno por uno
+   - SL planeado ($)
+   - TP1/TP2/TP3 planeados ($)
+   - Size calculado (en USDT)
+   - Score ML y Sentiment del momento
+
+2. Abrir posición:
+   - SL colocado inmediatamente (nunca "después")
+   - TPs escalonados: 40% TP1, 40% TP2, 20% TP3
+   - TP1 hit → SL a breakeven automático
+
+3. **NO TOCAR** una vez abierto. La posición ejecuta sola.
+
+### ⏳ Durante el trade — Paciencia activa
+
+- **NUNCA mover SL en contra.** Es la regla más violada y más cara.
+- Si el precio se aleja del SL sin llegar a TP1 → puede pasar. Respira.
+- Si necesitas cerrar manual (hora MX 23:30, evento macro imprevisto, pendiente personal) → cerrar a mercado sin mover SL.
+
+### 🌙 MX 23:30 — Alarma de cierre próximo
+
+Si el trade sigue abierto a las 23:30 MX:
+- Evalúa si hay chance real de tocar TP antes de 23:59
+- Si no → cerrar a mercado
+
+### 🔚 MX 23:59 — Force exit
+
+**Cerrar toda posición abierta. Sin excepción.** Cripto es 24/7; tu sueño no. Un wick de madrugada con leverage 10x puede liquidar la cuenta mientras duermes.
+
+### 📝 Al cerrar la sesión (o al cerrar trade)
+
+```
+/journal
+```
+
+El agente `journal-keeper` actualiza:
+- `trading_log.md` (memoria persistente)
+- `DAILY_TRADING_JOURNAL.md` (repo)
+- Métricas acumuladas (WR, PnL, capital)
+- Disciplina (reglas cumplidas/violadas)
+- 1 cosa a cambiar mañana
+
+### 🛏️ Antes de dormir
+
+- [ ] Trade del día cerrado
+- [ ] Journal actualizado
+- [ ] Git push hecho
+- [ ] SL/alarmas activas canceladas
+- [ ] Capital actual anotado mentalmente (sin obsesionarse)
+
+### 📅 Domingo — Review semanal
+
+```
+/review semanal
+```
+
+Métricas: WR, PF, DD, avg win/loss. Compara vs target (WR≥60%, PF≥1.8, DD≤15%). Identifica el patrón de la semana. Decide 1 ajuste para la próxima.
+
+### 🗓️ Cada 2-4 semanas — Re-entrenar ML
+
+```
+/ml-train --days 365
+```
+
+Recalibra el modelo con data reciente para adaptarse al régimen. Verifica AUC en `supervised/model/metrics.json`.
+
+---
+
 ## 🔧 Setup inicial
 
 ### Requisitos
@@ -198,7 +420,8 @@ Claude ejecuta 17 fases en ~5-8 minutos:
 - **BingX Futures** con BTCUSDT.P activado
 - **Claude Code** (Anthropic CLI)
 - **TradingView MCP** instalado y conectado (ver `tradingview-mcp/`)
-- **Python 3.11+** (para backtests locales)
+- **Python 3.9+** (para backtests y sistema ML)
+- **Homebrew** (para `libomp` requerido por XGBoost en Mac)
 
 ### Instalación
 
@@ -218,6 +441,12 @@ claude
 #    - Copiar contenido de MEAN_REVERSION_INDICATOR.pine
 #    - Pegar, guardar como "MR Signals"
 #    - Añadir al chart
+
+# 5. (Opcional pero recomendado) Setup del sistema ML:
+cd scripts/ml_system
+./setup.sh                              # instala deps Python
+brew install libomp                     # runtime XGBoost en Mac
+python3 supervised/train.py --days 365  # entrena modelo (~100MB download, 2-4 min)
 ```
 
 ### Memoria persistente
@@ -234,8 +463,9 @@ Si cambias de máquina, deberás regenerar la memoria o copiarla manualmente.
 
 | Meta | Capital | Días estimados | Estado |
 |---|---|---|---|
-| Primer trade ganador | $10 → $11.14 | 1 | ✅ **Completado** |
-| Acumular 25 trades estadísticos | → $15-20 | ~15-20 | 🔄 En progreso |
+| Primer trade ganador | $10 → $11.14 | 1 | ✅ **Completado** (2026-04-20) |
+| Segundo trade ganador | $11.14 → $12.23 | 1 | ✅ **Completado** (2026-04-21) |
+| Acumular 25 trades estadísticos | → $15-20 | ~15-20 | 🔄 En progreso (2/25) |
 | WR validado ≥ 60% sobre 25+ trades | — | ~20 | ⏳ Pendiente |
 | $20 por trade | $161 cap | ~26 | ⏳ Pendiente |
 | $50/día promedio | $325 cap | ~70 | ⏳ Pendiente |
@@ -340,6 +570,9 @@ Atajos rápidos para acciones frecuentes:
 | `/ta` | **Análisis técnico avanzado** (ICT, armónicos, chartismo, Elliott, Fibonacci) |
 | `/signal` | **Valida señal externa** de comunidad con tu sistema (GO/NO-GO) |
 | `/neptune` | Lee outputs de indicadores **Neptune** (Bangchan10) en el chart |
+| `/sentiment` | **NLP Sentiment Aggregator** (F&G + News + Reddit + Funding) → score 0-100 |
+| `/ml` | **ML score** del setup actual (XGBoost, probabilidad TP-first LONG/SHORT) |
+| `/ml-train` | Re-entrena el modelo XGBoost con histórico Binance |
 
 ### `.claude/skills/` — 8 Skills custom
 
@@ -499,6 +732,7 @@ Proyecto personal sin licencia pública. Si quieres usar partes del código, cit
 
 ---
 
-**Última actualización:** 2026-04-21
-**Capital actual:** $11.14
-**Próximo objetivo:** $20 (≈ +80%) en las próximas 2 semanas
+**Última actualización:** 2026-04-22
+**Capital actual:** $12.23 (2/2 wins, +22.3% acumulado)
+**Próximo objetivo:** $20 (≈ +63%) en las próximas 2 semanas
+**Última feature:** Capa ML (Sentiment NLP + XGBoost + LSTM scaffold) — commit `fa06770`
