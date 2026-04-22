@@ -54,3 +54,9 @@ Thumbs.db
 # Nested git repos (tracked separately upstream)
 claude-tradingview-mcp-trading/
 tradingview-mcp/
+
+# ML System — cache de data histórica Binance y modelos entrenados
+scripts/ml_system/data/
+scripts/ml_system/supervised/model/*.pkl
+scripts/ml_system/supervised/model/*.json
+scripts/ml_system/**/*.parquet

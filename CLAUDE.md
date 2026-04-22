@@ -111,6 +111,27 @@ En `/tmp/` durante sesiones activas:
 
 Estos son efímeros y se regeneran por sesión.
 
+## Subsistema ML (`scripts/ml_system/`)
+
+Capa de inteligencia que complementa (NO reemplaza) las reglas mecánicas:
+
+| Componente | Estado | Comando | Agente |
+|---|---|---|---|
+| **Sentiment NLP** (F&G + Reddit VADER + News RSS + Funding) | Activo | `/sentiment` | `sentiment-analyst` |
+| **ML Supervisado** (XGBoost, score TP-first LONG/SHORT) | Activo | `/ml`, `/ml-train` | `ml-analyst` |
+| **Deep Learning** (LSTM bidirectional) | Scaffold NO ACTIVO | — | — |
+
+Setup (primera vez): `scripts/ml_system/setup.sh`
+
+Datos históricos Binance se cachean en `scripts/ml_system/data/`. Modelos entrenados en `scripts/ml_system/supervised/model/`.
+
+**Reglas de uso:**
+- Ningún score ML convierte un NO-GO técnico en GO
+- ML score se usa como **5° filtro** cuando los 4 filtros técnicos ya están alineados
+- Si ML score <40 con setup técnico 4/4 → reducir size 50% o esperar siguiente setup
+- Sentiment extremo (<20 o >80) = sesgo contrarian para calibrar convicción
+- Deep Learning NO se activa hasta cumplir precondiciones en `scripts/ml_system/deep/README.md`
+
 ## Convenciones de interacción
 
 - **Idioma:** Español (mixto con términos técnicos de trading en inglés: SL, TP, long, short, leverage, etc.)
