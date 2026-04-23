@@ -1,6 +1,28 @@
 #!/bin/bash
-# Status line para sesión de trading — muestra cap, PnL, hora, ventana, trades
+# Status line para sesión de trading — profile-aware, muestra cap, PnL, hora, ventana, trades
 
+# ─────── Profile detection ───────
+PROFILE_SCRIPT="$(dirname "$0")/profile.sh"
+PROFILE="retail"
+if [[ -x "$PROFILE_SCRIPT" ]]; then
+  PROFILE="$(bash "$PROFILE_SCRIPT" get 2>/dev/null || echo "retail")"
+fi
+# ─────────────────────────────────
+
+# Determinar output según profile
+if [[ "$PROFILE" == "ftmo" ]]; then
+  CURVE="$(dirname "$0")/../profiles/ftmo/memory/equity_curve.csv"
+  if [[ -f "$CURVE" && $(wc -l < "$CURVE") -gt 1 ]]; then
+    LAST_EQ="$(tail -n1 "$CURVE" | cut -d',' -f2)"
+    DAILY="$(python3 "$(dirname "$0")/guardian.py" --profile ftmo --action status --brief 2>/dev/null || echo "N/A")"
+    echo "[FTMO \$10k] Equity: \$$LAST_EQ  •  $DAILY"
+  else
+    echo "[FTMO \$10k] Equity: \$10,000 (initial — run /equity)"
+  fi
+  exit 0
+fi
+
+# RETAIL path (preserva comportamiento actual)
 MEMORY_DIR="$HOME/.claude/projects/<project-path-encoded>/memory"
 TRADING_LOG="$MEMORY_DIR/trading_log.md"
 
@@ -61,11 +83,8 @@ else
     DELTA_SIGN=""
 fi
 
-# Single line output (no newlines)
-printf "%s💰 \$%s%s %s(%s\$%s)%s │ 📊 %s/3 │ %s%s%s │ 🕐 MX %s │ %sBTC.P%s" \
-    "$BOLD" "$CAP" "$RESET" \
-    "$DELTA_COLOR" "$DELTA_SIGN" "$DELTA" "$RESET" \
-    "$TRADES_HOY" \
-    "$VCOLOR" "$VENTANA" "$RESET" \
-    "$HORA_MX" \
-    "$YELLOW" "$RESET"
+# Single line output with profile indicator (no newlines)
+PROFILE_TAG="[RETAIL $CAP]"
+printf "%s%s%s Setup: Mean Reversion 15m  •  %s MX" \
+    "$BOLD" "$PROFILE_TAG" "$RESET" \
+    "$HORA_MX"
