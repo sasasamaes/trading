@@ -64,6 +64,34 @@ def trailing_dd(curve):
     return max(0.0, dd)
 
 
+def day_profits(curve):
+    """Dict mapping date -> profit for that date (equity end - equity start).
+    Only includes dates with 2+ entries.
+    """
+    by_date = {}
+    for row in curve:
+        d = row["timestamp"].date()
+        by_date.setdefault(d, []).append(row)
+    result = {}
+    for d, rows in by_date.items():
+        if len(rows) < 2:
+            continue
+        rows.sort(key=lambda x: x["timestamp"])
+        result[d] = rows[-1]["equity"] - rows[0]["equity"]
+    return result
+
+
+def best_day_ratio(curve):
+    """Returns (best_day_profit, total_positive_profit).
+    Only positive days are counted toward total.
+    """
+    profits = day_profits(curve)
+    positive = [p for p in profits.values() if p > 0]
+    if not positive:
+        return (0.0, 0.0)
+    return (max(positive), sum(positive))
+
+
 def main():
     # Stub — expanded in later tasks
     parser = argparse.ArgumentParser()

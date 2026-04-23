@@ -100,3 +100,61 @@ def test_trailing_dd_at_new_peak():
         {"timestamp": datetime(2026,4,24,10,0), "equity": 10400.0, "source": "m", "note": ""},
     ]
     assert guardian.trailing_dd(curve) == 0.0
+
+
+def test_best_day_ratio_no_profit():
+    curve = [
+        {"timestamp": datetime(2026,4,23,6,0), "equity": 10000.0, "source": "m", "note": ""},
+        {"timestamp": datetime(2026,4,23,16,0), "equity": 10000.0, "source": "m", "note": ""},
+    ]
+    best, total = guardian.best_day_ratio(curve)
+    assert best == 0.0
+    assert total == 0.0
+
+
+def test_best_day_ratio_single_day():
+    curve = [
+        {"timestamp": datetime(2026,4,23,6,0), "equity": 10000.0, "source": "m", "note": ""},
+        {"timestamp": datetime(2026,4,23,16,0), "equity": 10180.0, "source": "m", "note": ""},
+    ]
+    best, total = guardian.best_day_ratio(curve)
+    assert best == 180.0
+    assert total == 180.0
+
+
+def test_best_day_ratio_multiple_days_balanced():
+    curve = [
+        {"timestamp": datetime(2026,4,23,6,0),  "equity": 10000.0, "source": "m", "note": ""},
+        {"timestamp": datetime(2026,4,23,16,0), "equity": 10150.0, "source": "m", "note": ""},
+        {"timestamp": datetime(2026,4,24,6,0),  "equity": 10150.0, "source": "m", "note": ""},
+        {"timestamp": datetime(2026,4,24,16,0), "equity": 10300.0, "source": "m", "note": ""},
+    ]
+    # Day 1 profit 150, day 2 profit 150, total 300, best 150, ratio 0.5
+    best, total = guardian.best_day_ratio(curve)
+    assert best == 150.0
+    assert total == 300.0
+
+
+def test_best_day_ratio_one_big_day():
+    curve = [
+        {"timestamp": datetime(2026,4,23,6,0),  "equity": 10000.0, "source": "m", "note": ""},
+        {"timestamp": datetime(2026,4,23,16,0), "equity": 10600.0, "source": "m", "note": ""},
+        {"timestamp": datetime(2026,4,24,6,0),  "equity": 10600.0, "source": "m", "note": ""},
+        {"timestamp": datetime(2026,4,24,16,0), "equity": 10700.0, "source": "m", "note": ""},
+    ]
+    # Best 600, total 700, ratio 0.857 — violates Best Day Rule
+    best, total = guardian.best_day_ratio(curve)
+    assert best == 600.0
+    assert total == 700.0
+
+
+def test_best_day_ratio_ignores_losing_days():
+    curve = [
+        {"timestamp": datetime(2026,4,23,6,0),  "equity": 10000.0, "source": "m", "note": ""},
+        {"timestamp": datetime(2026,4,23,16,0), "equity": 10200.0, "source": "m", "note": ""},
+        {"timestamp": datetime(2026,4,24,6,0),  "equity": 10200.0, "source": "m", "note": ""},
+        {"timestamp": datetime(2026,4,24,16,0), "equity": 10100.0, "source": "m", "note": ""},  # losing day
+    ]
+    best, total = guardian.best_day_ratio(curve)
+    assert best == 200.0
+    assert total == 200.0  # Only positive days counted
