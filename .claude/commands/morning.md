@@ -1,11 +1,28 @@
 ---
-description: Análisis matutino completo BTCUSDT.P — protocolo 17 fases
+description: Análisis matutino adaptado al profile activo
 allowed-tools: Agent
 ---
 
-Invoca el agente `morning-analyst` con el protocolo completo de 17 fases documentado en `MORNING_PROMPT.md`.
+Análisis matutino adaptado al profile activo.
 
-El agente ejecutará:
+Pasos que ejecuta Claude:
+
+1. Lee profile: `PROFILE=$(bash .claude/scripts/profile.sh get)`
+
+2. SI profile == "retail":
+   - Despacha `morning-analyst` (BTC-BingX single-asset, 17 fases, ver abajo)
+   - El agente usa niveles/memoria de `profiles/retail/memory/`
+
+3. SI profile == "ftmo":
+   - Despacha `morning-analyst-ftmo` (multi-asset 14 fases)
+   - El agente analiza los 6 assets del universo FTMO
+   - Incluye guardian pre-check antes de proponer setups
+   - Usa niveles/memoria de `profiles/ftmo/memory/`
+
+4. Si argumento opcional: pasa como contexto adicional al agente (ej: "/morning sin café")
+
+## Fases del morning-analyst retail (17 fases, incluye Pre-flight TV)
+
 0. **Pre-flight TV** — `tv_health_check`; si está cerrado → `tv_launch` (auto `--remote-debugging-port=9222`), espera 10s, re-verifica. Valida símbolo = BINGX:BTCUSDT.P.
 1. Auto-check personal (sueño, comida, estado mental)
 2. Contexto global (F&G, funding, on-chain, sentiment)
