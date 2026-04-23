@@ -25,4 +25,4 @@ originSessionId: 870cfb36-0066-4b6c-a1b7-eeaebc9a6ca8
 - Cuando el usuario pida confirmación de un setup, verificar con datos (volumen, cierre exacto, contexto) antes de dar OK
 - Al entregar una estrategia nueva, SIEMPRE incluir: reglas de invalidación, camino realista al objetivo, riesgo honesto (incluyendo probabilidad de falla)
 - Evitar promesas de retornos. Los números de backtest son orientativos, decirlo cada vez
-- Usar el nombre del usuario (user) solo si él lo usa — por ahora trata con "tú" directamente
+- Tratar al usuario con "tú" directamente. Su nombre es Francisco pero prefiere estilo directo sin vocativos

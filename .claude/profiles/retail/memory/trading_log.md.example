@@ -1,0 +1,42 @@
+---
+name: Trading log — histórico de operaciones
+description: Registro de trades ejecutados con aprendizajes
+type: project
+---
+
+# Trading Log (template)
+
+**Este archivo es un TEMPLATE.** El archivo real `trading_log.md` está gitignored para proteger tu historial personal. Cópialo a `trading_log.md` y llénalo con tus trades reales:
+
+```bash
+cp .claude/profiles/retail/memory/trading_log.md.example .claude/profiles/retail/memory/trading_log.md
+```
+
+## Esquema por trade
+
+```
+**Trade #N — YYYY-MM-DD**
+- Hora MX entry / exit
+- Direction: LONG / SHORT
+- Entry / SL / TP1 / TP2 / TP3 (precios exactos)
+- Size: X BTC (margen $Y @ Nx leverage)
+- Resultado: TP1 / TP2 / TP3 / SL / BE / partial
+- PnL: +/-$X (+/-%)
+- Capital pre / post
+- Filtros cumplidos: 4/4 ✓ o cuál falló
+- Aprendizaje: qué aprendí del trade
+```
+
+## Métricas acumuladas
+
+- Trades totales: 0
+- Win Rate: 0%
+- Profit Factor: -
+- Capital inicial / actual: $X / $Y
+- Max Drawdown: -
+
+## Cómo usar
+
+1. `journal-keeper` agent auto-actualiza este archivo al `/journal`
+2. NUNCA commitear este archivo (está gitignored)
+3. Para backup, usar mecanismo fuera de git (ej: cloud drive, encrypted backup)

@@ -1,6 +1,12 @@
 # 📈 BTC Trading System — Dual-Profile (Retail + FTMO)
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-54%20passing-brightgreen.svg)](#)
+[![Multi-CLI](https://img.shields.io/badge/CLI-Claude%20Code%20%7C%20OpenCode-blue.svg)](#)
+
 Sistema de trading algorítmico-asistido **multi-profile**: retail BingX BTCUSDT.P y FTMO MT5 multi-asset, construido sobre TradingView + Claude Code + Pine Script + MQL5 EA.
+
+**Autor:** [Francisco Campos Diaz (@sasasamaes)](https://github.com/sasasamaes) · **License:** [MIT](LICENSE) · **Contribuciones:** ver [CONTRIBUTING.md](CONTRIBUTING.md)
 
 **Status actual:** Retail validado con 3 wins (+36.3% / $10 → $13.63). FTMO profile + MT5 bridge implementados, pendientes de paper trading.
 **Objetivo:** Escalar retail $10 → $100 y en paralelo pasar challenge FTMO $10k fundeado.
@@ -1000,24 +1006,19 @@ git push
 
 ## 🤝 Colaboración
 
-Este repo es **personal** pero si quieres proponer mejoras:
+PRs bienvenidos. Lee **[CONTRIBUTING.md](CONTRIBUTING.md)** antes de empezar — incluye tipos de contribución aceptadas, reglas de seguridad (nunca commitear credenciales), convenciones de commit, y el scope del proyecto.
 
-1. Fork el repo
-2. Crea una branch (`git checkout -b feature/mi-mejora`)
-3. Commit (`git commit -m 'Propuesta: ...'`)
-4. Push (`git push origin feature/mi-mejora`)
-5. Abre un Pull Request
-
-Idealmente acompaña con:
-- Backtest evidencia (>20 trades mínimo)
-- Justificación del cambio
-- Comparación vs estrategia actual
+**Issues y feature requests:** usa los [templates](.github/ISSUE_TEMPLATE/) del repo para bug reports y feature requests.
 
 ---
 
 ## 📜 Licencia
 
-Proyecto personal sin licencia pública. Si quieres usar partes del código, cita la fuente.
+Este proyecto está licenciado bajo **[MIT License](LICENSE)**.
+
+En resumen: puedes usar, modificar, distribuir y vender este código libremente con o sin atribución, siempre que (a) incluyas el copyright + licencia, y (b) entiendas que se provee "as is" sin garantías.
+
+**Nota adicional:** el código se comparte con fines educativos e investigación. Nada aquí constituye consejo financiero. Ver disclaimer completo en [LICENSE](LICENSE).
 
 ---
 

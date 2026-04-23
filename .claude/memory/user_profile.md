@@ -2,11 +2,10 @@
 name: User profile
 description: Trader retail en México operando BTCUSDT.P en BingX con capital pequeño
 type: user
-originSessionId: 870cfb36-0066-4b6c-a1b7-eeaebc9a6ca8
 ---
 **Perfil operativo:**
+- Nombre: Francisco Campos Diaz (GitHub: @sasasamaes)
 - Ubicación: México (UTC-6)
-- Email: <user-email>
 - Exchange: BingX (perpetuals)
 - Par activo: BTCUSDT.P
 - Capital inicial: $10

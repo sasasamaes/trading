@@ -69,7 +69,7 @@ bash .claude/scripts/statusline.sh
 ```bash
 cp .claude/.env.example .claude/.env
 # Editar .claude/.env con el editor que prefieras:
-#   FTMO_LOGIN=<ftmo-login>
+#   FTMO_LOGIN=<tu-login-ftmo>
 #   FTMO_PASSWORD=<tu password>
 #   FTMO_READONLY_PASSWORD=<tu read-only password>
 #   FTMO_SERVER=FTMO-Demo
