@@ -48,6 +48,57 @@ Pasos que ejecuta Claude:
      - "Brechas cerca: none / <rule>"
      - Próximo paso: "/profile retail para mañana" o "continuar FTMO"
 
+4.5. SI profile == "fotmarkets":
+
+   **H. Actualizar phase_progress.md:**
+   - Pregunta al usuario: "Capital actual en MT5 Fotmarkets (en USD, sin símbolo)?"
+   - Lee `.claude/profiles/fotmarkets/memory/phase_progress.md` actual
+   - Parse `capital_current` previo
+   - Actualiza:
+     ```yaml
+     capital_previous: <valor anterior>
+     capital_current: <valor nuevo del usuario>
+     trades_total: <incremento según trades escritos>
+     trades_wins / trades_losses: <incremento según resultado>
+     pnl_total_usd: <acumulado>
+     last_updated: "<timestamp ISO>"
+     ```
+   - Calcula fase nueva con `fotmarkets_phase.sh check <nuevo_capital>`
+   - Si fase_nueva != fase_previa:
+     - Actualiza campo `phase` y `phase_since` al timestamp actual
+     - Append al historial:
+       ```
+       | <fecha> | $<nuevo> | <fase_nueva> | MIGRACIÓN: fase <previa>→<nueva> |
+       ```
+     - Muestra al usuario:
+       ```
+       ⚠️ MIGRACIÓN DE FASE DETECTADA
+       De Fase <X> → Fase <Y>
+       Nuevos assets desbloqueados: <list>
+       Risk por trade: <old>% → <new>%
+       Max trades/día: <old> → <new>
+       
+       Confirma que entendiste antes de operar mañana.
+       ```
+   - Si fase es la misma:
+     - Solo append trades al log
+   
+   **I. Registrar trades del día:**
+   - Pregunta al usuario: "Lista de trades de hoy, uno por línea, formato: asset,dir,entry,sl,tp,close,resultado,pnl_usd"
+   - Parse cada línea y append a `trading_log.md` con formato de tabla
+   - Ejemplo:
+     ```
+     | 2026-04-23 | 09:32 | EURUSD | LONG | 0.03 | 1.0830 | 1.0820 | 1.0850 | tp | +$6.00 | 2.0 | 1 | NY overlap clean break |
+     ```
+
+   **J. Verificar posiciones fuera de ventana:**
+   - Pregunta: "¿Alguna posición sigue abierta ahora?"
+   - Si sí → WARNING grande: "Profile fotmarkets prohíbe overnight. Cierra manualmente en MT5 YA."
+   
+   **K. Notion dual-write (si NOTION_FOTMARKETS_DB_ID configurado):**
+   - Igual a ftmo/retail pero DB = NOTION_FOTMARKETS_DB_ID
+   - Si no configurado → skip sin error
+
 5. SI profile == "retail":
    - Comportamiento actual (3 wins log pattern).
    - journal-keeper append a `.claude/profiles/retail/memory/trading_log.md`.
