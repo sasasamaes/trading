@@ -12,3 +12,37 @@ Devuelve:
 - Niveles macro relevantes
 
 Tiempo estimado: < 1 minuto.
+
+## Profile-aware logic
+
+Comportamiento según profile activo (retail / ftmo / fotmarkets).
+
+1. Lee profile: `PROFILE=$(bash .claude/scripts/profile.sh get)`
+
+2. SI profile == "retail":
+   - Lógica actual (BTC 4H + 1H)
+   - Régimenes: RANGE / TRENDING UP / TRENDING DOWN / VOLATILE
+   - Basado en ATR multiplier + distance from extremes
+
+3. SI profile == "ftmo":
+   - Misma lógica pero aplicable al asset preguntado (no solo BTC)
+   - Incluye ADX como métrica adicional
+
+4. SI profile == "fotmarkets":
+   - Forex/Indices requiere ADX principalmente (no BTC-style range detection)
+   - Métricas:
+     - ADX(14) en 15m:
+       - ADX < 20 → RANGE (lateral, operable con strategy actual solo si hay soporte/resistencia tight)
+       - ADX 20-30 → TREND leve (ideal para Fotmarkets-Micro pullback)
+       - ADX > 30 → TREND fuerte (operar solo a favor, evitar reversiones)
+       - ADX > 40 → TREND extremo (no operar scalping reversal)
+     - +DI vs -DI: dirección del trend
+   - Output:
+     ```
+     Asset: <X>
+     ADX(15m): <val>
+     Régimen: <RANGE|TREND_LEVE|TREND_FUERTE|TREND_EXTREMO>
+     +DI: <val> | -DI: <val>
+     Dirección: <LONG_BIAS|SHORT_BIAS|NEUTRAL>
+     Recomendación Fotmarkets-Micro: <OPERAR|PAUSAR|SOLO_LONG|SOLO_SHORT>
+     ```
