@@ -30,8 +30,9 @@ pass() {
 }
 
 # Check 1: Ventana horaria MX
+# Nota: 10# fuerza base-10 (evita que bash interprete 0638 u 0900 como octal inválido)
 HORA_HHMM=$(TZ='America/Mexico_City' date +%H%M)
-if [[ "$HORA_HHMM" -lt 700 || "$HORA_HHMM" -gt 1055 ]]; then
+if (( 10#$HORA_HHMM < 700 || 10#$HORA_HHMM > 1055 )); then
   fail "Fuera de ventana operativa MX 07:00-10:55 (hora actual: ${HORA_HHMM:0:2}:${HORA_HHMM:2:2})"
 fi
 
@@ -53,10 +54,12 @@ case "$PHASE" in
 esac
 
 # Check 4: Trades hoy
+# Nota: `grep -c` sin matches imprime "0" pero exit 1. Usamos `|| true` para capturar
+# el "0" sin que `|| echo 0` duplique el valor (bug clásico de multi-línea).
 FECHA=$(TZ='America/Mexico_City' date +%Y-%m-%d)
 TRADES_HOY=0
 if [[ -f "$LOG_FILE" ]]; then
-  TRADES_HOY=$(grep -c "^| $FECHA " "$LOG_FILE" 2>/dev/null || echo 0)
+  TRADES_HOY=$(grep -c "^| $FECHA " "$LOG_FILE" 2>/dev/null || true)
   TRADES_HOY=${TRADES_HOY:-0}
 fi
 
