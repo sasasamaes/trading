@@ -29,6 +29,49 @@ Pasos que ejecuta Claude:
        - BLOCK_SIZE → "size reducir a X% del propuesto, luego confirmar"
        - BLOCK_HARD → "NO-GO. Razón: <reason>. Opción override: escribir literalmente 'OVERRIDE GUARDIAN'"
 
+3.5. SI profile == "fotmarkets":
+   - Invoca Lite Guardian primero:
+     ```
+     GUARD=$(bash .claude/scripts/fotmarkets_guard.sh check)
+     ```
+     Si `GUARD` empieza con `BLOCK`:
+       - Muestra razón al usuario
+       - Pregunta si quiere proceder con `OVERRIDE FOTMARKETS` (regla R10 de rules.md)
+       - Si NO → abortar validación con NO-GO
+       - Si OVERRIDE → continuar pero registrar en `memory/overrides.log`
+
+   - Despacha agente `trade-validator` con contexto:
+     - "Usar filtros de Fotmarkets-Micro (ver .claude/profiles/fotmarkets/strategy.md sección 3)"
+     - 4 filtros obligatorios LONG o SHORT según dirección propuesta
+   
+   - Verifica que asset esté en whitelist de la fase actual:
+     - `PHASE=$(bash .claude/scripts/fotmarkets_phase.sh)`
+     - Cargar `phase_N.allowed_assets` de config.md
+     - Si asset NO en whitelist → NO-GO con mensaje "Asset <X> desbloqueado en Fase Y+"
+   
+   - Si 4/4 filtros + asset whitelist OK:
+     - Calcula sizing invocando `/risk` con datos del setup
+     - Valida hard stops (ATR, spread, noticias) via strategy.md sección 7
+     - Si algún hard stop activo → NO-GO con razón
+     - Si todo OK → "GO" con mostrar:
+       ```
+       Asset:      <X>
+       Fase:       <N>
+       Entry:      <P>
+       SL:         <P> (dist <D> pips / X%)
+       TP:         <P> (R=2.0)
+       Lots:       <lots>
+       Risk USD:   $<X>
+       Risk %:     <phase_risk_pct>% del capital actual ($<CAP>)
+       Guardian:   PASS
+       Filtros:    4/4 ✓
+       ```
+   
+   - Si usuario escribe "OVERRIDE FOTMARKETS":
+     - Append a `.claude/profiles/fotmarkets/memory/overrides.log`:
+       `<timestamp>|fotmarkets|<rule_violated>|<capital>|<trade_json>|<user_reason>`
+     - Procede con "GO" pero con warning
+
 4. Formato de output estándar:
 
 ```
