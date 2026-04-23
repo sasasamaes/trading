@@ -13,6 +13,37 @@ Guía operativa para sesiones de trading BTCUSDT.P con Claude. Lee esto al inici
   - Cierre anticipado permitido si: ya acumuló ganancia buena del día **O** tiene un pendiente personal
 - **Estilo:** scalping intraday, no day-trading de múltiples días
 
+## Profile System (Dual)
+
+El sistema soporta **2 profiles aislados**. Se switchean al inicio del día con `/profile`.
+
+### Profile `retail` (default)
+- Capital $13.63 real en BingX BTCUSDT.P
+- Estrategia Mean Reversion 15m (este documento)
+- Ventana MX 06:00–23:59
+- Ver `.claude/profiles/retail/config.md`
+
+### Profile `ftmo`
+- Capital $10,000 virtual (FTMO 1-Step challenge demo)
+- Multi-asset: BTC + ETH + EURUSD + GBPUSD + NAS100 + SPX500
+- Estrategia FTMO-Conservative (SL 0.4%, risk 0.5%, target 1.5%/día)
+- Reglas FTMO duras: 3% daily (BLOCK), 10% trailing (WARN), Best Day 50% (INFO)
+- Ventana MX 06:00–16:00 (no overnight)
+- Ver `.claude/profiles/ftmo/config.md` y `rules.md`
+
+### Reglas de operación dual
+1. **No operar ambos profiles el mismo día.** Switch al inicio de sesión.
+2. **Nunca cruzar memorias** — trade FTMO no se escribe al log retail y viceversa.
+3. **Guardian** (`.claude/scripts/guardian.py`) obligatorio en FTMO antes de cada entry.
+4. **Statusline** muestra `[PROFILE]` en todo momento para prevenir confusión.
+
+### Comandos específicos dual-profile
+- `/profile` — ver/cambiar profile activo
+- `/equity <valor>` — actualizar equity FTMO manualmente
+- `/challenge` — dashboard progreso FTMO (solo ftmo)
+- `/status` — estado adaptado al profile activo
+- Los demás (`/morning`, `/validate`, `/risk`, `/journal`) son profile-aware
+
 ## Estrategia oficial — DEPENDE DEL RÉGIMEN DE MERCADO
 
 **Principio crítico:** NO hay estrategia universal. Cada día al iniciar sesión (MX 05:30), detectar el régimen ANTES de elegir estrategia.
