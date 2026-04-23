@@ -15,7 +15,7 @@ Guía operativa para sesiones de trading BTCUSDT.P con Claude. Lee esto al inici
 
 ## Profile System (Triple)
 
-El sistema soporta **2 profiles aislados**. Se switchean al inicio del día con `/profile`.
+El sistema soporta **3 profiles aislados**. Se switchean al inicio del día con `/profile`.
 
 ### Profile `retail` (default)
 - Capital $13.63 real en BingX BTCUSDT.P
