@@ -67,3 +67,43 @@ def translate_command(src_path, dst_path):
 
     dst_path.parent.mkdir(parents=True, exist_ok=True)
     dst_path.write_text(_serialize(new_fm, body))
+
+
+def translate_agent(src_path, dst_path):
+    """Claude Code → OpenCode agent format.
+
+    Converts `tools: A, B, C` string/list to `permission: {A: allow, B: allow}`.
+    Adds `mode: subagent` default.
+    Preserves description + body.
+    """
+    text = src_path.read_text()
+    fm, body = _parse_frontmatter(text)
+
+    if fm is None:
+        dst_path.parent.mkdir(parents=True, exist_ok=True)
+        dst_path.write_text(text)
+        return
+
+    new_fm = {
+        'description': fm.get('description', ''),
+        'mode': 'subagent',
+    }
+
+    # Parse tools (string "A, B" or list)
+    tools_raw = fm.get('tools', '')
+    if isinstance(tools_raw, str):
+        tools = [t.strip() for t in re.split(r'[,\n]', tools_raw) if t.strip()]
+    elif isinstance(tools_raw, list):
+        tools = [str(t).strip() for t in tools_raw if t]
+    else:
+        tools = []
+
+    if tools:
+        new_fm['permission'] = {t: 'allow' for t in tools}
+
+    # Preserve name if present (filename usually matches but frontmatter can differ)
+    if 'name' in fm:
+        new_fm['name'] = fm['name']
+
+    dst_path.parent.mkdir(parents=True, exist_ok=True)
+    dst_path.write_text(_serialize(new_fm, body))
