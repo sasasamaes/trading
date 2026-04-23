@@ -13,7 +13,7 @@ Guía operativa para sesiones de trading BTCUSDT.P con Claude. Lee esto al inici
   - Cierre anticipado permitido si: ya acumuló ganancia buena del día **O** tiene un pendiente personal
 - **Estilo:** scalping intraday, no day-trading de múltiples días
 
-## Profile System (Dual)
+## Profile System (Triple)
 
 El sistema soporta **2 profiles aislados**. Se switchean al inicio del día con `/profile`.
 
@@ -31,18 +31,34 @@ El sistema soporta **2 profiles aislados**. Se switchean al inicio del día con 
 - Ventana MX 06:00–16:00 (no overnight)
 - Ver `.claude/profiles/ftmo/config.md` y `rules.md`
 
-### Reglas de operación dual
-1. **No operar ambos profiles el mismo día.** Switch al inicio de sesión.
-2. **Nunca cruzar memorias** — trade FTMO no se escribe al log retail y viceversa.
-3. **Guardian** (`.claude/scripts/guardian.py`) obligatorio en FTMO antes de cada entry.
-4. **Statusline** muestra `[PROFILE]` en todo momento para prevenir confusión.
+### Profile `fotmarkets` (bonus $30)
+- **Capital $30 USD** — bonus no-deposit de Fotmarkets (Mauritius, sin regulación tier-1)
+- **MT5 Standard 1:500** (forzado por bonus T&C)
+- Multi-asset (8 assets, desbloqueados por fase): EURUSD/GBPUSD → USDJPY/XAUUSD/NAS100 → SPX500/BTCUSD/ETHUSD
+- Estrategia **Fotmarkets-Micro** (scalping reversal post-pullback 5m)
+- Escalation risk: **10% → 5% → 2%** según fase ($30→$100→$300+)
+- Ventana **MX 07:00–11:00** (London/NY overlap)
+- Ejecución **manual en MT5** (sin EA bridge)
+- Ver `.claude/profiles/fotmarkets/config.md`, `strategy.md`, `rules.md`
 
-### Comandos específicos dual-profile
+**⚠️ Filosofía Fotmarkets:** capital es bonus ("casa de juego"), NO depositar dinero propio,
+no reemplaza el profile FTMO/retail real.
+
+### Reglas de operación multi-profile
+1. **No operar múltiples profiles el mismo día.** Switch al inicio de sesión.
+2. **Nunca cruzar memorias** — trade FTMO no se escribe al log retail/fotmarkets y viceversa.
+3. **Guardian** (`.claude/scripts/guardian.py`) obligatorio en FTMO antes de cada entry.
+4. **Lite Guardian** (`.claude/scripts/fotmarkets_guard.sh`) obligatorio en fotmarkets antes de cada entry.
+5. **Statusline** muestra `[PROFILE]` en todo momento para prevenir confusión.
+
+### Comandos específicos multi-profile
 - `/profile` — ver/cambiar profile activo
 - `/equity <valor>` — actualizar equity FTMO manualmente
 - `/challenge` — dashboard progreso FTMO (solo ftmo)
 - `/status` — estado adaptado al profile activo
 - Los demás (`/morning`, `/validate`, `/risk`, `/journal`) son profile-aware
+- `/profile fotmarkets` — switch al 3er profile
+- `/risk` en fotmarkets → calcula sizing phase-aware (10%/5%/2%)
 
 ## Estrategia oficial — DEPENDE DEL RÉGIMEN DE MERCADO
 
