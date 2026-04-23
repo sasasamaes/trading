@@ -6,6 +6,19 @@ HORA_MX=$(TZ='America/Mexico_City' date +%H)
 HORA_MX=${HORA_MX#0}
 HORA_STR=$(TZ='America/Mexico_City' date +%H:%M)
 
+# ─────── Profile detection ───────
+PROFILE_SCRIPT="$(dirname "$0")/profile.sh"
+PROFILE=""
+if [[ -x "$PROFILE_SCRIPT" ]]; then
+  PROFILE="$(bash "$PROFILE_SCRIPT" get 2>/dev/null || echo "")"
+  if bash "$PROFILE_SCRIPT" stale >/dev/null 2>&1; then
+    PROFILE_STALE_MSG="
+⚠️  PROFILE STALE o no seteado. Último valor: ${PROFILE:-<ninguno>}
+   Ejecuta /profile ftmo  o  /profile retail  para confirmar hoy."
+  fi
+fi
+# ─────────────────────────────────
+
 # Determinar saludo según hora
 if [ "$HORA_MX" -ge 5 ] 2>/dev/null && [ "$HORA_MX" -le 9 ] 2>/dev/null; then
     SALUDO="Buenos días — ventana de trading activa"
@@ -17,21 +30,45 @@ else
     SALUDO="Fuera de ventana — planeando o revisando"
 fi
 
-# Leer capital actual de memoria
-MEMORY_DIR="$HOME/.claude/projects/<project-path-encoded>/memory"
-TRADING_LOG="$MEMORY_DIR/trading_log.md"
-CAP="11.14"
-if [ -f "$TRADING_LOG" ]; then
+# Leer capital actual de memoria según profile
+CAP_LINE=""
+if [[ "$PROFILE" == "ftmo" ]]; then
+  CURVE="$(dirname "$0")/../profiles/ftmo/memory/equity_curve.csv"
+  if [[ -f "$CURVE" && $(wc -l < "$CURVE") -gt 1 ]]; then
+    LAST_EQ="$(tail -n1 "$CURVE" | cut -d',' -f2)"
+    CAP_LINE="**Capital actual (FTMO):** \$$LAST_EQ"
+  else
+    CAP_LINE="**Capital actual (FTMO):** \$10,000 (inicial — corre /equity <valor> para actualizar)"
+  fi
+elif [[ "$PROFILE" == "retail" ]]; then
+  MEMORY_DIR="$HOME/.claude/projects/<project-path-encoded>/memory"
+  TRADING_LOG="$MEMORY_DIR/trading_log.md"
+  CAP="11.14"
+  if [ -f "$TRADING_LOG" ]; then
     FOUND=$(grep -oE 'Capital (actual|running|final)[: ]+\$[0-9]+\.[0-9]+' "$TRADING_LOG" 2>/dev/null | tail -1 | grep -oE '[0-9]+\.[0-9]+')
     [ -n "$FOUND" ] && CAP="$FOUND"
+  fi
+  CAP_LINE="**Capital actual (RETAIL):** \$$CAP"
+else
+  CAP_LINE="**Capital actual:** (profile no detectado)"
 fi
 
 # Construir contexto como JSON
+PROFILE_HEADER="## CONTEXTO TRADING SESSION"
+if [[ -n "$PROFILE" ]]; then
+  PROFILE_HEADER="## CONTEXTO TRADING SESSION — Profile: [$PROFILE]"
+fi
+STALE_MSG_OUTPUT=""
+if [[ -n "${PROFILE_STALE_MSG:-}" ]]; then
+  STALE_MSG_OUTPUT="$PROFILE_STALE_MSG"
+fi
+
 CONTEXT=$(cat <<EOF
-# CONTEXTO TRADING SESSION
+$PROFILE_HEADER
+$STALE_MSG_OUTPUT
 
 **Hora MX:** $HORA_STR — $SALUDO
-**Capital actual:** \$$CAP
+$CAP_LINE
 **Símbolo:** BTCUSDT.P (BingX)
 **Estrategia activa:** Mean Reversion 15m (según régimen)
 
