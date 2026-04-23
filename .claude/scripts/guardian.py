@@ -34,6 +34,36 @@ def load_equity_curve(csv_path):
     return rows
 
 
+def peak_equity(curve):
+    """Highest equity value in the curve. 0.0 if empty."""
+    if not curve:
+        return 0.0
+    return max(r["equity"] for r in curve)
+
+
+def daily_pnl(curve, target_date):
+    """Equity delta for a specific calendar date.
+    Returns 0.0 if no data or only one point on the date.
+    """
+    today_rows = [r for r in curve if r["timestamp"].date() == target_date]
+    if len(today_rows) < 2:
+        return 0.0
+    # Sorted chronologically by load_equity_curve
+    return today_rows[-1]["equity"] - today_rows[0]["equity"]
+
+
+def trailing_dd(curve):
+    """Drawdown from the peak equity. Positive value = in drawdown.
+    0.0 if empty or at new peak.
+    """
+    if not curve:
+        return 0.0
+    peak = peak_equity(curve)
+    last = curve[-1]["equity"]
+    dd = peak - last
+    return max(0.0, dd)
+
+
 def main():
     # Stub — expanded in later tasks
     parser = argparse.ArgumentParser()

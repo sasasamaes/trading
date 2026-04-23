@@ -33,3 +33,70 @@ def test_load_single_row():
     assert curve[0]["equity"] == 10000.0
     assert curve[0]["source"] == "manual"
     assert isinstance(curve[0]["timestamp"], datetime)
+
+
+def test_peak_equity_empty():
+    assert guardian.peak_equity([]) == 0.0
+
+
+def test_peak_equity_single():
+    curve = [{"timestamp": datetime(2026,4,23,6,0), "equity": 10000.0, "source": "m", "note": ""}]
+    assert guardian.peak_equity(curve) == 10000.0
+
+
+def test_peak_equity_multiple():
+    curve = [
+        {"timestamp": datetime(2026,4,23,6,0), "equity": 10000.0, "source": "m", "note": ""},
+        {"timestamp": datetime(2026,4,23,9,0), "equity": 10200.0, "source": "m", "note": ""},
+        {"timestamp": datetime(2026,4,23,12,0), "equity": 10150.0, "source": "m", "note": ""},
+    ]
+    assert guardian.peak_equity(curve) == 10200.0
+
+
+def test_daily_pnl_no_data():
+    assert guardian.daily_pnl([], date(2026,4,23)) == 0.0
+
+
+def test_daily_pnl_single_point_no_baseline():
+    curve = [{"timestamp": datetime(2026,4,23,9,0), "equity": 10180.0, "source": "m", "note": ""}]
+    # Only one point today — can't compute intraday P&L
+    assert guardian.daily_pnl(curve, date(2026,4,23)) == 0.0
+
+
+def test_daily_pnl_positive():
+    curve = [
+        {"timestamp": datetime(2026,4,23,6,0), "equity": 10000.0, "source": "m", "note": ""},
+        {"timestamp": datetime(2026,4,23,9,0), "equity": 10180.0, "source": "m", "note": ""},
+    ]
+    assert guardian.daily_pnl(curve, date(2026,4,23)) == 180.0
+
+
+def test_daily_pnl_negative():
+    curve = [
+        {"timestamp": datetime(2026,4,23,6,0), "equity": 10000.0, "source": "m", "note": ""},
+        {"timestamp": datetime(2026,4,23,14,0), "equity": 9780.0, "source": "m", "note": ""},
+    ]
+    assert guardian.daily_pnl(curve, date(2026,4,23)) == -220.0
+
+
+def test_trailing_dd_no_peak():
+    curve = [{"timestamp": datetime(2026,4,23,6,0), "equity": 10000.0, "source": "m", "note": ""}]
+    assert guardian.trailing_dd(curve) == 0.0
+
+
+def test_trailing_dd_in_drawdown():
+    curve = [
+        {"timestamp": datetime(2026,4,23,6,0), "equity": 10000.0, "source": "m", "note": ""},
+        {"timestamp": datetime(2026,4,24,10,0), "equity": 10400.0, "source": "m", "note": ""},
+        {"timestamp": datetime(2026,4,25,9,0), "equity": 10250.0, "source": "m", "note": ""},
+    ]
+    # Peak 10400, current 10250, dd = 150
+    assert guardian.trailing_dd(curve) == 150.0
+
+
+def test_trailing_dd_at_new_peak():
+    curve = [
+        {"timestamp": datetime(2026,4,23,6,0), "equity": 10000.0, "source": "m", "note": ""},
+        {"timestamp": datetime(2026,4,24,10,0), "equity": 10400.0, "source": "m", "note": ""},
+    ]
+    assert guardian.trailing_dd(curve) == 0.0
