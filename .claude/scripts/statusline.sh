@@ -37,6 +37,45 @@ if [[ "$PROFILE" == "ftmo" ]]; then
   exit 0
 fi
 
+# FOTMARKETS path
+if [[ "$PROFILE" == "fotmarkets" ]]; then
+  SCRIPT_DIR="$(dirname "$0")"
+  PROGRESS="$SCRIPT_DIR/../profiles/fotmarkets/memory/phase_progress.md"
+  LOG="$SCRIPT_DIR/../profiles/fotmarkets/memory/trading_log.md"
+
+  CAP=$(grep -E '^capital_current:' "$PROGRESS" 2>/dev/null | awk '{print $2}' | tr -d ' ')
+  CAP=${CAP:-30.00}
+
+  PHASE=$(bash "$SCRIPT_DIR/fotmarkets_phase.sh" 2>/dev/null || echo "1")
+  case "$PHASE" in
+    1) NEXT_THRESHOLD="→\$100"; MAX_TRADES=1 ;;
+    2) NEXT_THRESHOLD="→\$300"; MAX_TRADES=2 ;;
+    3) NEXT_THRESHOLD="estándar"; MAX_TRADES=3 ;;
+  esac
+
+  HORA_MX=$(TZ='America/Mexico_City' date +%H:%M)
+  FECHA=$(TZ='America/Mexico_City' date +%Y-%m-%d)
+
+  TRADES_HOY=0
+  if [[ -f "$LOG" ]]; then
+    TRADES_HOY=$(grep -c "^| $FECHA " "$LOG" 2>/dev/null || true)
+    TRADES_HOY=${TRADES_HOY:-0}
+  fi
+
+  # Ventana 07:00-11:00 (octal-safe con 10#)
+  HORA_HHMM=$(TZ='America/Mexico_City' date +%H%M)
+  if (( 10#$HORA_HHMM >= 700 && 10#$HORA_HHMM <= 1055 )); then
+    VENTANA="🟢 VENT"
+  elif (( 10#$HORA_HHMM > 1055 && 10#$HORA_HHMM <= 1100 )); then
+    VENTANA="🟡 CLOSE"
+  else
+    VENTANA="🔴 OFF"
+  fi
+
+  echo "[FOTMARKETS] \$$CAP | Fase $PHASE ($NEXT_THRESHOLD) | $VENTANA MX $HORA_MX | $TRADES_HOY/$MAX_TRADES trades$NOTION_TAG"
+  exit 0
+fi
+
 # RETAIL path (preserva comportamiento actual)
 MEMORY_DIR="$HOME/.claude/projects/<project-path-encoded>/memory"
 TRADING_LOG="$MEMORY_DIR/trading_log.md"
