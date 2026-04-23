@@ -83,8 +83,12 @@ else
     DELTA_SIGN=""
 fi
 
-# Single line output with profile indicator (no newlines)
-PROFILE_TAG="[RETAIL $CAP]"
-printf "%s%s%s Setup: Mean Reversion 15m  •  %s MX" \
-    "$BOLD" "$PROFILE_TAG" "$RESET" \
-    "$HORA_MX"
+# Single line output (preserva formato retail original + profile tag)
+printf "%s[RETAIL]%s %s💰 \$%s%s %s(%s\$%s)%s │ 📊 %s/3 │ %s%s%s │ 🕐 MX %s │ %sBTC.P%s" \
+    "$BOLD" "$RESET" \
+    "$BOLD" "$CAP" "$RESET" \
+    "$DELTA_COLOR" "$DELTA_SIGN" "$DELTA" "$RESET" \
+    "$TRADES_HOY" \
+    "$VCOLOR" "$VENTANA" "$RESET" \
+    "$HORA_MX" \
+    "$YELLOW" "$RESET"
