@@ -734,6 +734,130 @@ me responda cdp_connected: true. Ahí sabemos que jaló.
 
 **Alternativa manual** (si prefieres no usar el prompt): seguir `tradingview-mcp/README.md` del submodule y agregar el server con `claude mcp add tradingview node /absolute/path/to/tradingview-mcp/src/server.js`.
 
+### Instalar Notion MCP — dual-write de journal a Notion (prompt listo para Claude Code)
+
+Opcional pero recomendado si quieres que cada trade se loggee **tanto en `.md` local como en Notion**. El sistema detecta la config automáticamente — si no configurás Notion, sigue funcionando con solo `.md`.
+
+Copia este prompt tal cual a Claude Code en una sesión nueva. Claude ejecuta paso por paso, crea las DBs via MCP, y te reporta cada etapa:
+
+```text
+Quiero conectar Notion MCP al sistema de trading para dual-write de journal
+(retail + FTMO). Repo: este mismo (~/Documents/trading). Docs de referencia:
+docs/NOTION_SETUP.md del repo.
+
+Por favor haz TODO esto paso por paso, reportándome cada etapa. No avances al
+siguiente paso si uno falla — explícame el error y cómo resolverlo.
+
+1. VERIFICAR PRERREQUISITOS:
+   - Verifica que estamos en la raíz del repo: `pwd` debe ser ~/Documents/trading
+     (o donde clonaste). Si no, `cd` ahí primero.
+   - Verifica que tengo cuenta de Notion activa. Preguntame si no lo sabes.
+   - Verifica Node.js 18+: `node --version`. Si falta, dime cómo instalarlo.
+
+2. INSTALAR EL NOTION MCP OFICIAL (OAuth):
+   Corre: `claude mcp add notion https://mcp.notion.com/mcp`
+   Esto va a abrir OAuth flow en el browser:
+     - Te voy a pedir login a Notion
+     - Autorizar acceso al workspace que usaré para las DBs
+   Espera a que complete. Luego verifica con:
+   `claude mcp list | grep notion`
+   Debe mostrar: "notion: https://mcp.notion.com/mcp - ✓ Connected"
+   Si no conecta, retry una vez. Si sigue fallando, diagnostica el error.
+
+3. CREAR LAS 2 NOTION DBs VIA MCP:
+   Ahora que el MCP está conectado, usá las tools mcp__notion__* para crear
+   2 databases en mi workspace. Primero preguntame en qué página quiero que
+   vivan (raíz del workspace o una página específica). Luego:
+
+   DB 1: "Trades Retail" con schema (exacto):
+     - Name (Title)
+     - Date (Date)
+     - Time MX (Text)
+     - Asset (Select: BTCUSDT.P)
+     - Direction (Select: LONG, SHORT)
+     - Entry (Number)
+     - SL (Number)
+     - TP1 (Number)
+     - TP2 (Number)
+     - TP3 (Number)
+     - Size (BTC) (Number)
+     - Leverage (Number)
+     - Result (Select: TP1, TP2, TP3, SL, BE, partial, open)
+     - PnL $ (Number)
+     - PnL % (Number)
+     - R multiple (Number)
+     - Filters passed (Text)
+     - ML score (Number)
+     - Sentiment (Number)
+     - Notes (Text)
+
+   DB 2: "Trades FTMO" con schema (exacto):
+     - Name (Title)
+     - Date (Date)
+     - Time MX (Text)
+     - Asset (Select: BTCUSD, ETHUSD, EURUSD, GBPUSD, NAS100, SPX500)
+     - Direction (Select: LONG, SHORT)
+     - Entry (Number)
+     - SL (Number)
+     - TP1 (Number)
+     - TP2 (Number)
+     - Lots (Number)
+     - Magic (Number)
+     - Ticket MT5 (Number)
+     - Status (Select: queued, sent_to_ea, filled, expired, canceled, manual_pending, closed)
+     - Result (Select: TP1, TP2, SL, BE, partial, open, N/A)
+     - PnL $ (Number)
+     - PnL % (Number)
+     - R multiple (Number)
+     - Filters passed (Text)
+     - Guardian verdict (Select: OK, OK_WITH_WARN, BLOCK_SIZE, BLOCK_HARD, override)
+     - Equity pre (Number)
+     - Equity post (Number)
+     - Notes (Text)
+
+   Reporta los 2 database_id generados (hex 32 chars cada uno).
+
+4. LLENAR .env CON LOS DB IDs:
+   - Si no existe .claude/.env, crealo copiando de .env.example:
+     `cp .claude/.env.example .claude/.env`
+   - Edita .claude/.env y agrega/actualiza estas dos líneas con los IDs del paso 3:
+     NOTION_RETAIL_DB_ID=<id_db_retail>
+     NOTION_FTMO_DB_ID=<id_db_ftmo>
+   - Verificá que .env NO está en git: `git status --short` — .env no debe aparecer.
+
+5. VERIFICAR DETECCIÓN:
+   Corre: `bash .claude/scripts/statusline.sh`
+   El output debe terminar con "• 📝 Notion ✓". Si no, revisá paso 4 y relee.
+
+6. TEST DE DUAL-WRITE:
+   - Cambia a profile retail: `bash .claude/scripts/profile.sh set retail`
+   - Simula un trade cerrado: invoca /journal y dime qué parámetros te pido
+     para crear una entrada de prueba (trade #TEST con capital unchanged).
+   - Al ejecutar /journal, deberías:
+     (a) Append al .md local
+     (b) Crear una row nueva en Notion DB Trades Retail
+     Verificá visualmente ambos. Si falla Notion, reporta el error exacto
+     y dejá el .md local intacto.
+   - Al terminar exitoso, borra el row de prueba de Notion (fue solo test)
+     y revierte el append del .md.
+
+7. DECIRME QUÉ HAGO AHORA:
+   Resume en 3 pasos:
+     (a) recarga/reinicia Claude Code si el statusline no mostraba el tag
+     (b) uso normal: cada /journal, /order, /sync, /trades, /challenge ahora
+         hace dual-write transparente (sin pedirme nada extra)
+     (c) si quiero desactivar Notion temporalmente: comentar las líneas en
+         .env o borrarlas
+
+Objetivo final: que cuando corra /journal en modo retail con un trade real,
+aparezca un row nuevo en la DB "Trades Retail" en mi Notion, y el .md local
+también tenga el append. Ahí sabemos que funciona.
+```
+
+**Qué hace el prompt:** conecta Notion MCP via OAuth, crea las 2 DBs (retail + ftmo) directamente desde Claude con el schema correcto (sin copiar/pegar manual), actualiza `.env` con los IDs, verifica detección via statusline, y prueba end-to-end con un trade dummy. Todo lo que no requiere UI del browser, lo automatiza.
+
+**Alternativa manual** (si prefieres hacer las DBs a mano): seguir `docs/NOTION_SETUP.md` paso a paso — incluye schemas con checkboxes y troubleshooting.
+
 ### Memoria persistente
 
 Claude mantendrá memoria de tu perfil en `~/.claude/projects/.../memory/`.
