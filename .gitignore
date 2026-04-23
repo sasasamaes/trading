@@ -60,3 +60,6 @@ scripts/ml_system/data/
 scripts/ml_system/supervised/model/*.pkl
 scripts/ml_system/supervised/model/*.json
 scripts/ml_system/**/*.parquet
+
+# Git worktrees (isolated dev branches)
+.worktrees/
