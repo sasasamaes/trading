@@ -62,7 +62,8 @@ Si ATR × 1.2 < floor del asset → usar el floor.
 - Sin partials (complejidad innecesaria con 0.01 lote)
 
 ### Fase 2 ($100–$300): partials
-- TP1 a **2.0R** (cierra 50%, mueve SL a BE)
+- Si precio alcanza **1.0R** sin haber tocado TP1 → mover SL a BE preventivamente (proteger ganancia flotante)
+- TP1 a **2.0R** (cierra 50%, confirma SL en BE)
 - TP2 a **3.5R** (cierra 50% restante)
 
 ### Fase 3 ($300+): partials extendidos
@@ -94,7 +95,7 @@ if lots < 0.01 → ABORTAR (trade imposible con min lot)
 3. 15 min antes de noticia roja (NFP, FOMC, CPI) → cierre preventivo + no reentrar 30 min
 4. Jueves 07:00–09:00 MX si hay ECB meeting → NO operar en EUR pairs
 
-## 8. Checklist pre-entry (siempre 4/4)
+## 8. Checklist pre-entry
 
 - [ ] Profile activo = fotmarkets (verificar statusline)
 - [ ] Hora MX ∈ [07:00, 10:55]
@@ -109,5 +110,5 @@ if lots < 0.01 → ABORTAR (trade imposible con min lot)
 - [ ] Position sizing calculado con risk phase-aware
 - [ ] Spread actual aceptable
 
-11/11 → GO.
+12/12 → GO.
 Menos → NO-GO.
