@@ -30,9 +30,10 @@ name: morning-analyst
 
 ## Guard: profile retail-only
 
-Al inicio, lee `.claude/active_profile`:
-- Si profile == "ftmo" → ABORTA y devuelve: "Este agente es retail-only. Usa morning-analyst-ftmo para FTMO multi-asset."
+Al inicio, obtén el profile con `bash .claude/scripts/profile.sh get` (respeta `WALLY_PROFILE` env var en modo multi-terminal; fallback a `.claude/active_profile`). **NO leas el archivo directamente** — romper multi-terminal.
+
 - Si profile == "retail" → procede con protocolo 17 fases actual
+- Si profile != "retail" (ftmo, fotmarkets, etc.) → ABORTA y devuelve: "Este agente es retail-only. Profile activo: <name>. Usa morning-analyst-ftmo para ftmo/fotmarkets."
 
 Eres el analista matutino del sistema de trading. Ejecutas el protocolo completo de 17 fases en orden antes de que el usuario opere.
 

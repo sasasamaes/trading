@@ -7,24 +7,35 @@ Guía operativa para sesiones de trading con Claude. Lee esto al inicio de cada 
 
 ## Perfil del trader
 
-- **Exchange:** BingX (BTCUSDT.P perpetual)
+- **Exchanges activos:** Binance Futures (main) + BingX (micro account residual)
 - **Zona horaria:** México (UTC-6)
-- **Capital activo:** $10 (objetivo inicial: escalar a $100)
-- **TradingView:** Plan Basic (máx 2 indicadores — Neptune Signals + Neptune Oscillator ocupan ambos slots)
-- **Ventana operativa:** MX 06:00 – 23:59 (análisis desde 06:00, force exit 23:59 MX "antes de dormir")
+- **Capital retail main (Binance):** $18.09 (post-migración 2026-04-23)
+- **Capital retail-bingx:** $0.93 (residual, uso pedagógico)
+- **TradingView:** Plan Basic (máx 2 indicadores — Neptune Signals + Neptune Oscillator)
+- **Ventana operativa retail:** MX 06:00 – 23:59 (análisis desde 06:00, force exit 23:59 MX)
   - Cripto opera 24/7, pero el trader NO duerme con posición abierta
   - Cierre anticipado permitido si: ya acumuló ganancia buena del día **O** tiene un pendiente personal
 - **Estilo:** scalping intraday, no day-trading de múltiples días
 
-## Profile System (Triple)
+## Profile System (4 profiles)
 
-El sistema soporta **3 profiles aislados**. Se switchean al inicio del día con `/profile`.
+El sistema soporta **4 profiles aislados**. Se switchean con `/profile` o con env var `WALLY_PROFILE` (multi-terminal).
 
-### Profile `retail` (default)
-- Capital $13.63 real en BingX BTCUSDT.P
-- Estrategia Mean Reversion 15m (este documento)
+### Profile `retail` — Binance main (default)
+- Capital **$18.09** real en Binance Futures `BTCUSDT.P`
+- Símbolo TV: `BINANCE:BTCUSDT.P`
+- Estrategia Mean Reversion 15m
 - Ventana MX 06:00–23:59
+- Log arranca limpio (Binance fresh start 2026-04-23)
 - Ver `.claude/profiles/retail/config.md`
+
+### Profile `retail-bingx` — BingX micro account
+- Capital **$0.93** residual en BingX `BTCUSDT.P`
+- Símbolo TV: `BINGX:BTCUSDT.P`
+- Estrategia Mean Reversion 15m (idéntica a retail/Binance)
+- Histórico preservado: 3 wins BingX ($10 → $13.63) en `./memory/trading_log.md`
+- Uso pedagógico — position sizing cosmético al 2%
+- Ver `.claude/profiles/retail-bingx/config.md`
 
 ### Profile `ftmo`
 - Capital $10,000 virtual (FTMO 1-Step challenge demo)
@@ -48,11 +59,12 @@ El sistema soporta **3 profiles aislados**. Se switchean al inicio del día con 
 no reemplaza el profile FTMO/retail real.
 
 ### Reglas de operación multi-profile
-1. **No operar múltiples profiles el mismo día.** Switch al inicio de sesión.
-2. **Nunca cruzar memorias** — trade FTMO no se escribe al log retail/fotmarkets y viceversa.
-3. **Guardian** (`.claude/scripts/guardian.py`) obligatorio en FTMO antes de cada entry.
-4. **Lite Guardian** (`.claude/scripts/fotmarkets_guard.sh`) obligatorio en fotmarkets antes de cada entry.
-5. **Statusline** muestra `[PROFILE]` en todo momento para prevenir confusión.
+1. **No operar el mismo setup en `retail` y `retail-bingx` simultáneamente** (doble exposición direccional al mismo BTC). Uno u otro por sesión/día.
+2. **No mezclar profiles distintos (retail / ftmo / fotmarkets) el mismo día.** Switch al inicio de sesión.
+3. **Nunca cruzar memorias** — trade FTMO no se escribe al log retail/fotmarkets y viceversa. Tampoco cruzar entre `retail` y `retail-bingx`.
+4. **Guardian** (`.claude/scripts/guardian.py`) obligatorio en FTMO antes de cada entry.
+5. **Lite Guardian** (`.claude/scripts/fotmarkets_guard.sh`) obligatorio en fotmarkets antes de cada entry.
+6. **Statusline** muestra `[PROFILE]` en todo momento para prevenir confusión.
 
 ### Comandos específicos multi-profile
 - `/profile` — ver/cambiar profile activo
