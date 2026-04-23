@@ -250,13 +250,114 @@ def check_entry(cfg, curve, trade, now=None):
     }
 
 
+def _action_status(cfg, curve):
+    """Build status payload for --action status."""
+    initial = cfg.get("initial_capital", 10000)
+    if not curve:
+        return {
+            "equity_current": initial,
+            "equity_peak": initial,
+            "daily_pnl": 0.0,
+            "daily_pnl_pct": 0.0,
+            "trailing_dd": 0.0,
+            "trailing_dd_pct": 0.0,
+            "best_day": 0.0,
+            "total_profit": 0.0,
+            "best_day_ratio": 0.0,
+        }
+    today = date.today()
+    current = curve[-1]["equity"]
+    peak = peak_equity(curve)
+    daily = daily_pnl(curve, today)
+    dd = trailing_dd(curve)
+    best, total = best_day_ratio(curve)
+    return {
+        "equity_current": current,
+        "equity_peak": peak,
+        "daily_pnl": daily,
+        "daily_pnl_pct": (daily / initial) * 100,
+        "trailing_dd": dd,
+        "trailing_dd_pct": (dd / initial) * 100,
+        "best_day": best,
+        "total_profit": total,
+        "best_day_ratio": (best / total) if total > 0 else 0.0,
+    }
+
+
+def _action_equity_update(curve_path, value, note=""):
+    """Append a new row to equity_curve.csv."""
+    ts = datetime.utcnow().replace(microsecond=0).isoformat()
+    with open(curve_path, "a") as f:
+        f.write(f"{ts},{value},manual,{note}\n")
+
+
+def _action_check_entry(cfg, curve, args):
+    trade = {
+        "asset": args.asset,
+        "entry": float(args.entry),
+        "sl": float(args.sl),
+        "loss_if_sl": float(args.loss_if_sl),
+    }
+    return check_entry(cfg, curve, trade)
+
+
 def main():
-    # Stub — expanded in later tasks
     parser = argparse.ArgumentParser()
-    parser.add_argument("--profile", required=True)
-    parser.add_argument("--action", required=True)
-    args, _ = parser.parse_known_args()
-    print(json.dumps({"profile": args.profile, "action": args.action, "stub": True}))
+    parser.add_argument("--profile", required=True, choices=["ftmo", "retail"])
+    parser.add_argument("--action", required=True,
+                        choices=["status", "check-entry", "equity-update"])
+    parser.add_argument("--profile-root",
+                        default=str(Path(__file__).parent.parent / "profiles"))
+    parser.add_argument("--brief", action="store_true",
+                        help="Terse one-line output for statusline")
+    # check-entry args
+    parser.add_argument("--asset")
+    parser.add_argument("--entry")
+    parser.add_argument("--sl")
+    parser.add_argument("--loss-if-sl", dest="loss_if_sl")
+    # equity-update args
+    parser.add_argument("--value")
+    parser.add_argument("--note", default="")
+
+    args = parser.parse_args()
+
+    profile_root = Path(args.profile_root)
+    config_path = profile_root / args.profile / "config.md"
+    curve_path = profile_root / args.profile / "memory" / "equity_curve.csv"
+
+    if args.action == "equity-update":
+        if args.value is None:
+            print("ERROR: --value required", file=sys.stderr)
+            sys.exit(2)
+        _action_equity_update(str(curve_path), float(args.value), args.note)
+        print(json.dumps({"profile": args.profile, "action": "equity-update",
+                          "equity": float(args.value), "ok": True}))
+        return
+
+    # For status and check-entry, load config and curve
+    cfg = load_profile_config(str(config_path))
+    curve = load_equity_curve(str(curve_path))
+
+    if args.action == "status":
+        payload = _action_status(cfg, curve)
+        payload["profile"] = args.profile
+        if args.brief:
+            # One-line for statusline
+            daily = payload["daily_pnl"]
+            dd = payload["trailing_dd"]
+            print(
+                f"Daily: ${daily:+.0f} ({daily/cfg['initial_capital']*100:+.1f}%) "
+                f"• DD: ${dd:.0f} ({dd/cfg['initial_capital']*100:.1f}%/10%)"
+            )
+        else:
+            print(json.dumps(payload, indent=2))
+        return
+
+    if args.action == "check-entry":
+        result = _action_check_entry(cfg, curve, args)
+        result["profile"] = args.profile
+        print(json.dumps(result, indent=2))
+        return
 
 
 if __name__ == "__main__":

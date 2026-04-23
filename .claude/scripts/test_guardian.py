@@ -1,8 +1,11 @@
 # Unit tests for guardian.py — run with: pytest .claude/scripts/test_guardian.py -v
 import sys
+import json
+import subprocess
 import tempfile
 import pathlib
 from datetime import datetime, date
+from pathlib import Path
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 import guardian
@@ -251,3 +254,32 @@ def test_check_entry_block_max_trades():
     result = guardian.check_entry(CFG_DEFAULT, curve, trade, now=datetime(2026,4,23,12,0))
     assert result["verdict"] == "BLOCK_HARD"
     assert "trades" in result["reason"].lower()
+
+
+def test_cli_status_returns_json(tmp_path):
+    """End-to-end: run guardian.py --action status with an empty profile."""
+    # Setup temp profile structure
+    profile_dir = tmp_path / "profiles" / "ftmo"
+    (profile_dir / "memory").mkdir(parents=True)
+    (profile_dir / "config.md").write_text("""```yaml
+challenge_type: 1-step
+initial_capital: 10000
+max_daily_loss_pct: 3
+max_total_trailing_pct: 10
+best_day_cap_pct: 50
+risk_per_trade_pct: 0.5
+max_trades_per_day: 2
+max_sl_consecutive: 2
+```""")
+    (profile_dir / "memory" / "equity_curve.csv").write_text("timestamp,equity,source,note\n")
+
+    script = str(Path(__file__).parent / "guardian.py")
+    result = subprocess.run(
+        [sys.executable, script, "--profile", "ftmo", "--action", "status",
+         "--profile-root", str(tmp_path / "profiles")],
+        capture_output=True, text=True
+    )
+    assert result.returncode == 0, f"stderr: {result.stderr}"
+    data = json.loads(result.stdout)
+    assert data["profile"] == "ftmo"
+    assert "equity_current" in data
