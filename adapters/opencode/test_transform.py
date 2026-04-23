@@ -1,4 +1,5 @@
 """Unit tests for transform.py — CC → OpenCode translator."""
+import json
 import sys
 from pathlib import Path
 
@@ -167,3 +168,43 @@ body
     fm = y.safe_load(m.group(1))
     # name is OK to preserve or drop; test just verifies body + description remain
     assert fm['description'] == 'd'
+
+
+def test_translate_mcp_basic(tmp_path):
+    src = tmp_path / "servers.json"
+    src.write_text(json.dumps({
+        "servers": {
+            "tradingview": {
+                "command": "node",
+                "args": ["/path/to/server.js"],
+                "env": {"DEBUG": "1"}
+            }
+        }
+    }))
+    dst_config = tmp_path / "config.json"
+    transform.translate_mcp(src, dst_config)
+
+    loaded = json.loads(dst_config.read_text())
+    assert 'mcp' in loaded
+    assert 'servers' in loaded['mcp']
+    assert loaded['mcp']['servers']['tradingview']['command'] == 'node'
+    assert loaded['mcp']['servers']['tradingview']['args'] == ['/path/to/server.js']
+
+
+def test_translate_mcp_preserves_existing_config(tmp_path):
+    """If .opencode/config.json already has other settings, merge only mcp section."""
+    src = tmp_path / "servers.json"
+    src.write_text(json.dumps({
+        "servers": {"tradingview": {"command": "node", "args": [], "env": {}}}
+    }))
+    dst = tmp_path / "config.json"
+    dst.write_text(json.dumps({
+        "theme": "dark",
+        "model": "claude-sonnet-4"
+    }))
+    transform.translate_mcp(src, dst)
+
+    loaded = json.loads(dst.read_text())
+    assert loaded['theme'] == 'dark'  # preserved
+    assert loaded['model'] == 'claude-sonnet-4'  # preserved
+    assert 'mcp' in loaded  # added
