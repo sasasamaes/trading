@@ -56,3 +56,45 @@ Pasos que ejecuta Claude:
    - Muestra warning: "Profile desconocido: <X>. Corre /profile ftmo|retail|fotmarkets."
 
 6. Al final de cualquier output, incluye: "Última actualización: <timestamp>. Cambiar profile: /profile ftmo|retail|fotmarkets"
+
+## Sección Watcher (v1)
+
+Al final del output de `/status`, añade:
+
+```bash
+# Read watcher status + pending summary
+python3 <<'EOF'
+import json
+from pathlib import Path
+from pending_lib import load_all_pendings, PROFILES, TERMINAL_STATUSES
+
+status_path = Path(".claude/watcher/status.json")
+if status_path.exists():
+    s = json.loads(status_path.read_text())
+    print(f"\n## Watcher")
+    print(f"Last tick: {s.get('last_tick_utc','-')} ({s.get('duration_ms','?')}ms, ok={not s.get('errors')})")
+    print(f"Pendings checked last tick: {s.get('pendings_checked', 0)}")
+    actions = s.get('actions', [])
+    by_action = {}
+    for a in actions:
+        by_action[a.get('action','?')] = by_action.get(a.get('action','?'), 0) + 1
+    if by_action:
+        parts = " | ".join(f"{k}: {v}" for k,v in by_action.items())
+        print(f"Actions: {parts}")
+    if s.get('errors'):
+        print("Errors:")
+        for e in s['errors']:
+            print(f"  • {e}")
+    print(f"Next tick ETA: {s.get('next_tick_eta_utc','-')}")
+else:
+    print("\n## Watcher\n_(no tick run yet — instala launchd o corre /watch)_")
+
+# Pending counts per profile
+all_p = load_all_pendings()
+print("\n### Pendings por profile")
+for profile, orders in all_p.items():
+    active = [o for o in orders if o.get('status') not in TERMINAL_STATUSES]
+    if active:
+        print(f"  {profile}: {len(active)} active")
+EOF
+```
