@@ -1,73 +1,72 @@
-Encola una orden para FTMO. Escribe a la cola de commands del EA si está vivo, o a manual_pending si no.
+Encola una orden limit virtual para el profile activo. El watcher la vigila
+hourly hasta trigger/invalidación.
 
 Uso:
-- `/order` — deriva params del último análisis del día (memoria de sesión o último setup en /morning)
-- `/order BTCUSD LONG 77538 sl=77238 tp=78288 lots=0.07` — override explícito
+- `/order` — infiere params del último análisis (si hay `/morning` reciente en la conversación).
+- `/order BTCUSDT.P LONG 77521 sl=77101 tp=78571 ttl=6h`
+- `/order BTCUSDT.P LONG 77521 sl=77101 tp=78571 invalid=76900 ttl=6h`
+- `/order BTCUSDT.P LONG 77521 ... --real` (solo retail; en v1 imprime "stub")
+- `/order BTCUSDT.P LONG 77521 ... --check-regime` (invalida si régimen cambia)
 
 Pasos que ejecuta Claude:
 
-1. Lee profile activo. Si ≠ "ftmo" → ERROR "Solo FTMO. Usa /profile ftmo"
+1. **Lee profile activo:** `PROFILE=$(bash .claude/scripts/profile.sh get)`
+2. **Parsea args:** Si vacíos, busca último setup en la conversación con bloque
+   `ENTRY|SL|TP|INVALIDATION`. Si no encuentra → error "Dame params explícitos o corre /morning primero".
+3. **Valida profile-specific:**
+   - `ftmo` → **DELEGA al flow existente** (guardian.py + EA bridge). Este comando
+     SOLO maneja el path virtual nuevo para retail, retail-bingx, fotmarkets.
+     Si `PROFILE=ftmo`, imprime "Para FTMO usa el flow existente — ver
+     pending_orders.json + mt5_bridge" y aborta (el comando ftmo original aún
+     vive; este /order nuevo es para los 3 no-ftmo).
 
-2. Carga params:
-   - Sin args: busca en contexto conversacional el último setup (/morning output, /validate veredicto)
-   - Con args: parsea la línea. Valida símbolo, side (LONG/SHORT → BUY_LIMIT/SELL_LIMIT si no es inmediato), entry, sl, tp, lots
+     > **FTMO legacy flow (referencia):** Carga params → guardian.py check →
+     > preview ASCII + confirmación YES → append pending_orders.json →
+     > mt5_bridge.py ea-status → si EA vivo: append mt5_commands.json, espera
+     > 10s, verifica processed+result.ok; si EA offline: status=manual_pending,
+     > imprime box para copiar a MT5 manualmente → dual-write a Notion FTMO DB
+     > (si NOTION_FTMO_DB_ID en .claude/.env + mcp__notion_* disponible).
 
-3. Guardian check:
-   `python3 .claude/scripts/guardian.py --profile ftmo --action check-entry --asset <SYMBOL> --entry <E> --sl <SL> --loss-if-sl <calc>`
-   - Si BLOCK_HARD → abort: "Guardian BLOCK: <reason>. Override: escribir OVERRIDE GUARDIAN"
-   - Si BLOCK_SIZE → aplica size_adjustment automático
-   - Si OK / OK_WITH_WARN → continúa
+   - `retail` / `retail-bingx` → sanity checks no-bloqueantes (SL lado correcto,
+     TP lado correcto, risk_pct ≤ 2, qty>0).
+   - `fotmarkets` → llama `bash .claude/scripts/fotmarkets_guard.sh check`; si
+     BLOCK → abortar. Aplica phase sizing.
+4. **Whitelist matrix check:** Llama `python3 -c "from pending_lib import
+   load_all_pendings, apply_whitelist_matrix; ..."` con la orden candidata
+   añadida virtualmente. Si la nueva orden quedaría en `suspended_policy` →
+   preguntar al usuario: "Otra pending bloquea esta. ¿Abortar o cancelar la
+   conflictiva?"
+5. **Construye el order dict** usando `order_lib.build_order(...)` (ver paso 7).
+6. **Preview ASCII + confirmación:**
 
-4. **Confirmación obligatoria:**
-   Muestra preview con ASCII box (params + guardian verdict + risk USD). Pide al usuario responder literal `YES` para proceder. Cualquier otra respuesta aborta sin escribir.
+   ```
+   ╔══════════════════════════════════════╗
+   ║  NEW ORDER [virtual, watcher-tracked]║
+   ║  ID: ord_YYYYMMDD_HHMMSS_...         ║
+   ║  Profile:  retail                    ║
+   ║  Asset:    BTCUSDT.P LONG            ║
+   ║  Entry:    77521  (tol 0.1%)         ║
+   ║  SL:       77101  (-0.54%)           ║
+   ║  TP1/2/3:  78571 / 79201 / 80041     ║
+   ║  Qty:      0.00086 BTC (Margin $6.72)║
+   ║  Risk:     $0.36 (2.0% de $18.09)    ║
+   ║  TTL:      6h (expires 16:48 MX)     ║
+   ║  Invalid:  76900 (below)             ║
+   ║  Filters:  RSI<35, BB-lo, DC-lo,     ║
+   ║            candle green (at trigger) ║
+   ╚══════════════════════════════════════╝
+   ```
 
-5. Si YES:
-   a. Genera id con `python3 scripts/mt5_bridge.py next-cmd-id` (o calcula en Python inline)
-   b. Append a `.claude/profiles/ftmo/memory/pending_orders.json`:
-      ```json
-      { "id": "...", "symbol": "...", "setup": "...", "proposed_at": "<iso>",
-        "entry": ..., "sl": ..., "tp1": ..., "lots": ..., "status": "queued",
-        "guardian_verdict": "OK", "filters_passed": <n> }
-      ```
-   c. Detect EA: `python3 .claude/scripts/mt5_bridge.py ea-status`. Si output contiene "✓" → EA vivo.
-   d. Si EA vivo:
-      - Append command a mt5_commands.json: `python3 scripts/mt5_bridge.py append-command <json>`
-      - Update pending status → "sent_to_ea"
-      - Espera 10s (sleep), re-lee mt5_commands.json, verifica `processed: true` y `result.ok`
-      - Si ok → status = sent_to_ea (stays hasta que matchee posición en próximo /sync)
-      - Si error → status = ea_error, mostrar result.error
-   e. Si EA offline:
-      - status = "manual_pending"
-      - Display ASCII box con params para copiar a MT5 manual
+   Espera respuesta literal `YES`. Cualquier otro valor → abort.
 
-6. Output formal:
-```
-╔══════════════════════════════════════╗
-║  ORDEN ENCOLADA [<status>]           ║
-║  ID: <id>                            ║
-║  Símbolo:  <SYMBOL>                  ║
-║  Tipo:     <SIDE>                    ║
-║  Entry:    <E>                       ║
-║  SL:       <SL>  (<pct>)             ║
-║  TP:       <TP>  (<pct>)             ║
-║  Lots:     <L>                       ║
-║  Risk:     $<calc>  (<pct> equity)   ║
-║  Magic:    77777                     ║
-║  Guardian: <verdict>                 ║
-╚══════════════════════════════════════╝
-```
+7. **Si YES:**
+   - Llama `python3 -c "from order_lib import create_and_persist; create_and_persist(...)"`
+     con los params parseados.
+   - Imprime confirmación + `notify_hub.notify(Urgency.INFO, "order_created", ...)`
+   - Recuerda al usuario: "Puedes `/watch` ahora para forzar primer tick, o esperar el launchd hourly."
 
-Si manual_pending, agregar: `⚠️ EA OFFLINE — copia a MT5 manualmente`
+8. **Flags opcionales:**
+   - `--real` en retail → en v1 imprime **"⚠️ --real no implementado en v1, orden creada solo virtual"** y continúa con flow virtual.
+   - `--check-regime` → en la orden set `check_regime_change: true`.
 
-7. Al final, actualiza pending_orders.json a disco (update status final).
-
-8. **DUAL-WRITE A NOTION FTMO DB (si Notion MCP activo):**
-   - Lee `.claude/.env` para `NOTION_FTMO_DB_ID`. Verifica acceso a tools `mcp__notion_*`
-   - Si disponible:
-     - Crea row en Notion FTMO DB con parent_database_id=$NOTION_FTMO_DB_ID
-     - Columnas: Name=`#<id> <asset> <direction>`, Date=today, Time MX=<hh:mm>, Asset, Direction, Entry, SL, TP1, Lots, Magic=77777, **Status=<queued|sent_to_ea|manual_pending>**, Guardian verdict=<OK/WARN>, Filters passed=`7/7`, Notes=`setup: <setup>`
-     - Captura page_id del resultado
-     - Append `notion_page_id` field al pending en pending_orders.json (para que /sync pueda update después)
-   - Si Notion write falla:
-     - Warning: "⚠️ Notion create failed: <error>. Orden en pending_orders.json local preservada."
-     - NO bloquea el flujo
+Si algún paso falla (guardian, whitelist, confirmación != YES) → NO escribe pending_orders.json.
