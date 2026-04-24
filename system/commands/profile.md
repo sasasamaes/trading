@@ -36,3 +36,62 @@ Pasos que ejecuta Claude:
 Reglas:
 - NUNCA cambiar profile si hay trade abierto (evita cross-contamination)
 - Después de switch, recordar al usuario que las memorias del otro profile quedan intactas
+
+### Pre-switch: pending handshake (v1 watcher)
+
+Antes de cambiar de profile, checkear pending orders activas:
+
+1. **Leer pending del profile actual:**
+   ```bash
+   python3 -c "
+   from pending_lib import load_pendings, TERMINAL_STATUSES
+   orders = [o for o in load_pendings('$CURRENT_PROFILE') if o.get('status') not in TERMINAL_STATUSES and o.get('status') != 'suspended_profile_switch']
+   for o in orders:
+       print(f'{o[\"id\"]}|{o[\"asset\"]}|{o.get(\"side\",\"\")}|{o[\"status\"]}|dist_ttl={o[\"expires_at\"]}')
+   "
+   ```
+
+2. Si el output tiene líneas → mostrar prompt:
+   ```
+   ⚠️ Profile actual `<current>` tiene <N> pending activa(s):
+     • ord_xxx BTCUSDT.P LONG (status: pending, TTL ...)
+
+   Al cambiar a `<target>`, ¿qué hago?
+     [s] suspend — mantener pending pero pausar watcher (volver reactiva)
+     [c] cancel — marcar canceled_manual (terminal, no vuelve)
+     [k] keep_active — dejar watcher vigilándolas (respeta matriz whitelist)
+
+   Tu elección:
+   ```
+
+3. Aplicar elección:
+   - `s` → update_status a `suspended_profile_switch` para cada pending.
+   - `c` → update_status a `canceled_manual`.
+   - `k` → no tocar (default fallback si timeout/unclear input).
+
+4. **Leer pending suspended del profile target:**
+   ```bash
+   python3 -c "
+   from pending_lib import load_pendings
+   orders = [o for o in load_pendings('$TARGET_PROFILE') if o.get('status') == 'suspended_profile_switch']
+   for o in orders:
+       print(f'{o[\"id\"]}|{o[\"asset\"]}|{o.get(\"side\",\"\")}|ttl={o[\"expires_at\"]}')
+   "
+   ```
+
+5. Si hay suspended → mostrar prompt Caso B:
+   ```
+   ℹ️ Profile target `<target>` tiene <N> pending suspended:
+     • ord_zzz ...
+
+   ¿Reactivar o descartar?
+     [r] reopen — status=pending (watcher vigila de nuevo; si TTL expiró, pasa a expired_ttl en siguiente tick)
+     [d] discard — marcar canceled_manual
+   ```
+
+6. Aplicar elección. Para `reopen`: update_status a `pending`.
+
+7. **Seguir con el set profile existente** (`bash .claude/scripts/profile.sh set <target>`).
+
+8. Al final, disparar un `/watch` tick (o llamar directo `python3 .claude/scripts/watcher_tick.py`)
+   para refresh del dashboard con el nuevo estado.
