@@ -1,0 +1,57 @@
+# Cross-profile compatibility matrix for pending orders.
+# Rules evaluated top-to-bottom; first match wins.
+
+asset_families:
+  BTC:
+    - retail:BTCUSDT.P
+    - retail-bingx:BTCUSDT.P
+    - ftmo:BTCUSD
+    - fotmarkets:BTCUSD
+  ETH:
+    - ftmo:ETHUSD
+    - fotmarkets:ETHUSD
+  EURUSD:
+    - ftmo:EURUSD
+    - fotmarkets:EURUSD
+  GBPUSD:
+    - ftmo:GBPUSD
+    - fotmarkets:GBPUSD
+  NAS100:
+    - ftmo:NAS100
+    - fotmarkets:NAS100
+  SPX500:
+    - ftmo:SPX500
+    - fotmarkets:SPX500
+
+rules:
+  - id: block_retail_and_retail_bingx_simultaneous
+    match:
+      profiles_in: [retail, retail-bingx]
+      count_gte: 2
+    action: suspend_newest
+    reason: "Regla sagrada CLAUDE.md — no dos profiles retail simultáneos"
+
+  - id: block_ftmo_and_fotmarkets_same_asset_family
+    match:
+      profiles_in: [ftmo, fotmarkets]
+      same_asset_family: true
+    action: suspend_newest
+    reason: "Dos brokers MT5 = doble exposure real-ish"
+
+  - id: block_same_family_same_direction
+    match:
+      same_asset_family: true
+      same_side: true
+    action: suspend_newest
+    reason: "Doble exposure direccional al mismo underlying"
+
+  - id: allow_hedge_different_direction
+    match:
+      same_asset_family: true
+      same_side: false
+    action: allow_with_warning
+    warning: "Hedge detectado — asegura que es intencional"
+
+  - id: allow_default
+    match: {}
+    action: allow
