@@ -58,9 +58,14 @@ Score A/B/C/D por asset (morning-analyst-ftmo lo calcula):
 | SL | 0.4% del entry (fijo) |
 | TP1 (50%) | 0.6% (1.5R) → mueve SL a BE |
 | TP2 (50%) | 1.2% (3.0R) |
-| Trailing post-TP1 | Stop a mid entre entry y TP2 |
+| Trailing post-TP1 | Stop a mid entre entry y TP2 (default) **o** EMA(20) 15m si ADX>25 |
 | Force exit | 16:00 MX |
 | Overnight | PROHIBIDO |
+
+**Trailing EMA(20) 15m** (alternativa al stop discreto): tras TP1, en lugar de saltar SL a
+mid entry-TP2, dejar trailing dinámico con EMA(20) de bars 15m. Salir cuando close 15m
+cruce la EMA en contra. Helper: `python3 .claude/scripts/trailing_stop.py`. Aplica cuando
+régimen del asset es TREND_LEVE/FUERTE (ADX>25 — verifica con `python3 .claude/scripts/adx_calc.py`).
 
 **R:R efectivo:** +0.9% notional por trade exitoso = **+0.45% equity** con size 0.5%.
 

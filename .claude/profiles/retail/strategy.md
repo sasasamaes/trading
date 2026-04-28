@@ -15,7 +15,7 @@ Validada con **100% WR** y **+15.1%** en backtest 3 días frente a 144 configs.
 | SL | 1.5 × ATR (adaptativo) |
 | TP1 (40%) | 2.5 × SL → SL a BE |
 | TP2 (40%) | 4.0 × SL |
-| TP3 (20%) | 6.0 × SL |
+| TP3 (20%) | 6.0 × SL **o** trailing EMA(20) 15m (ver §Trailing) |
 | Leverage | 10x |
 | Ventana | MX 06:00 – 23:59 |
 
@@ -32,6 +32,51 @@ Validada con **100% WR** y **+15.1%** en backtest 3 días frente a 144 configs.
 2. RSI > 65
 3. High de vela toca BB superior
 4. Vela cierra roja
+
+## Estrategia 3 — MA Crossover (EMA 9/21) para TRENDING
+
+Activa cuando régimen detectado es TREND_LEVE o TREND_FUERTE (ADX > 25).
+
+| Parámetro | Valor |
+|---|---|
+| Timeframe | 15m (entry) — 1H (confirmación) |
+| EMA fast | 9 |
+| EMA slow | 21 |
+| Filtro trend | close 15m por encima/debajo de EMA(21) |
+| SL | 1.5 × ATR(14) |
+| TP1 (40%) | 1.5R → SL a BE |
+| TP2 (40%) | 3.0R |
+| TP3 (20%) | Trailing EMA(21) 15m vía `/trail long X 21` |
+| Confirmación | Volumen vela cross ≥ promedio 20 velas |
+
+Helper: `python3 .claude/scripts/macross.py --file /tmp/bars15m.json --quick`
+Comando: `/macross`
+
+**Cuándo elegirla sobre Breakout:**
+- Si ADX > 25 pero no hay nivel claro de Donchian a romper → MA Crossover
+- Si Donchian extremo ya fue tocado y rebotó (false breakout) → MA Crossover en próximo cross
+- Mean Reversion solo si ADX < 25
+
+## Trailing Stop con EMA(20) — modo de salida alternativo (TP3 runner)
+
+El runner (20% del size restante tras TP1+TP2) puede usar **uno** de dos modos:
+
+**Modo A — Target fijo (default):** TP3 a 6.0 × SL.
+
+**Modo B — Trailing EMA(20) en 15m:** preferible cuando el mercado está en TRENDING (ADX>25)
+porque captura más del rally sin dejar gain on table:
+- Tras TP2 cierra, dejas el runner abierto sin target fijo
+- Cada cierre de vela 15m calcula EMA(20)
+- Si próximo cierre 15m **toca** EMA(20) (precio cruza la EMA por debajo en LONG / arriba en SHORT) → exit market
+- Mientras EMA(20) suba (LONG) o baje (SHORT), el trail se ajusta solo
+
+Helper: `python3 .claude/scripts/trailing_stop.py --file /tmp/bars15m.json --side long --entry X --current Y`
+o usa el comando `/trail`.
+
+**Cuándo elegir B sobre A:**
+- ADX(14, 1H) > 25 al cerrar TP2 → modo B
+- Régimen detectado TRENDING UP/DOWN → modo B
+- Si RANGE/CHOP → modo A (target fijo evita whipsaw en EMA)
 
 ## Invalidación
 

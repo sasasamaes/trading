@@ -109,6 +109,35 @@ def score(r):
 ranked = sorted(results, key=score, reverse=True)
 ```
 
+### 5.5 OOS validation OBLIGATORIA — detector de overfitting
+
+Para cualquier config "ganadora" del ranking, NO la reportes como recomendable hasta validar
+out-of-sample. El PDF (PIEZA 02) advierte: "PROBAR CON OTRO CONJUNTO DE DATOS … esto puede
+hacer que estés en un OVERFITTING".
+
+Protocolo: split temporal **70/30** (train = primeros 70%, test = últimos 30% — sin shuffle):
+
+```python
+import sys, json
+sys.path.insert(0, '.claude/scripts')
+from backtest_split import temporal_split, report_oos
+
+train_bars, test_bars = temporal_split(bars, train_ratio=0.7)
+train_metrics = run_backtest(train_bars, best_params)
+test_metrics  = run_backtest(test_bars,  best_params)
+
+# Convertir a dict con keys n/wr/pf/ret/dd
+print(report_oos(train_metrics, test_metrics, label="MeanRev15m"))
+```
+
+Resultado posible:
+- **PASS** → recomendar la config con confianza moderada
+- **WARN** → reportar pero advertir "muestra OOS limitada / degradación notable"
+- **FAIL** → NO recomendar. Reportar como "overfit detectado" con métricas
+
+Si NO hay suficiente data para split fiable (<50 bars o <3 trades en test), declarar
+explícitamente "OOS no validado por data insuficiente" y bajar la confianza del veredicto.
+
 ### 6. Reportar resultados
 
 Formato:
@@ -164,6 +193,7 @@ Conclusión: más trades ≠ mejor retorno. La actual gana en PF y DD.
 4. **Marca como "muestra insuficiente"** si n < 20 trades
 5. **Honesto con datos malos** — si una estrategia pierde, dilo directo
 6. **Advierte de overfit** si demasiados parámetros optimizan perfecto sobre poca data
+7. **OOS obligatorio:** ninguna config ganadora se recomienda sin pasar `backtest_split.report_oos`. Si FAIL → reportar como overfit, no como ganador.
 
 ## Archivos típicos generados
 

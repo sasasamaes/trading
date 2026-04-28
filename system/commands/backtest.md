@@ -19,6 +19,10 @@ Data disponible:
 
 Output:
 - Top configs ranked por (WR × PF × Retorno - DD)
+- **OOS Validation** (split temporal 70/30) — train vs test con verdict PASS/WARN/FAIL
+  - PASS → recomendación con confianza moderada
+  - WARN → reportar con advertencia (degradación notable)
+  - FAIL → declarado como overfit, NO recomendar
 - Trade-by-trade log de la mejor
 - Hallazgos honestos (incluye limitaciones)
 

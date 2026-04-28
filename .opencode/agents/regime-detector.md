@@ -40,6 +40,30 @@ Evitar que el usuario aplique mean reversion en un trending market o breakout en
 - `data_get_ohlcv summary=true count=24`
 - Revisa: estructura micro, si rompe niveles macro
 
+### 2.5 ADX(14) — métrica objetiva de fuerza de tendencia (OBLIGATORIA)
+
+Tras pull 1H, guarda los bars en `/tmp/adx_bars.json` y corre:
+
+```bash
+python3 .claude/scripts/adx_calc.py --file /tmp/adx_bars.json --quick
+```
+
+Output ejemplo: `ADX=28.5 +DI=24.1 -DI=15.3 REGIME=TREND_LEVE_LONG_BIAS BARS=24`
+
+Thresholds canónicos:
+- **ADX < 20** → RANGE_CHOP (trend ausente; Mean Reversion o stand-aside)
+- **ADX 20–25** → TRANSITION (cautela, posible cambio de régimen)
+- **ADX 25–30** → TREND_LEVE (pullback trades en dirección)
+- **ADX 30–40** → TREND_FUERTE (Breakout/Momentum, evita reversiones)
+- **ADX > 40** → TREND_EXTREMO (no scalping reversal — solo runners)
+
+Dirección la da +DI vs -DI:
+- +DI > -DI → LONG_BIAS
+- -DI > +DI → SHORT_BIAS
+- |+DI − -DI| < 2 → NEUTRAL (espera direccionalidad)
+
+**Cruzar siempre** la clasificación cualitativa (paso 3) con ADX. Si chocan (ej: heurística dice RANGE pero ADX=32) → confiar en ADX y reportar discrepancia.
+
 ### 3. Clasifica
 
 **RANGE:**
@@ -73,8 +97,13 @@ Evidencia:
 - 1H últimos 24 bars: [micro estructura]
 - ATR 4H: [actual] vs [promedio]
 - Volumen trend: [up/down/flat]
+- ADX(14, 1H): [val] | +DI [v] / -DI [v] → [TREND_LEVE_LONG_BIAS|...]
 
-ESTRATEGIA RECOMENDADA: [Mean Reversion / Donchian Breakout / NO OPERAR]
+ESTRATEGIA RECOMENDADA: [Mean Reversion / Donchian Breakout / MA Crossover / NO OPERAR]
+  - ADX < 20: Mean Reversion
+  - ADX 25-30 + Donchian breaking: Donchian Breakout
+  - ADX 25-40 + sin nivel claro Donchian: MA Crossover (EMA 9/21) → `/macross`
+  - ADX > 40: NO scalping reversal — solo holds direccionales
 
 Niveles clave HOY:
 - Rango: XX,XXX - XX,XXX (caja macro)

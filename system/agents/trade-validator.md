@@ -26,6 +26,9 @@ Evitar que el usuario entre en setup inválido. **Tu sesgo por defecto es NO-GO.
 ### 1. Lee estado actual
 - `quote_get` → precio actual
 - `data_get_ohlcv count=5` → últimas 5 velas 15m
+- `chart_set_timeframe 60` + `data_get_ohlcv count=40` → bars 1H para ADX
+- Guarda 1H bars en `/tmp/bars1h.json` y corre `python3 .claude/scripts/adx_calc.py --file /tmp/bars1h.json --quick` → captura `ADX=<v>`
+- Si modo es MA Crossover → también pull bars 15m y corre `python3 .claude/scripts/macross.py --file /tmp/bars15m.json --quick` → captura `SIGNAL=`
 - Si hay Neptune Oscillator activo → `data_get_study_values` para RSI
 - Lee `trading_log.md` → ¿cuántos SLs lleva hoy?
 
@@ -48,6 +51,25 @@ Evitar que el usuario entre en setup inválido. **Tu sesgo por defecto es NO-GO.
 - [ ] Close 15m rompe Donchian Low - buffer 30 pts (SHORT)
 - [ ] Volumen vela breakout > 300 BTC
 - [ ] EMA50 confirma dirección
+
+**Para MA Crossover (si régimen = TRENDING + ADX 25-40, sin Donchian breaking):**
+
+LONG:
+- [ ] EMA(9) cruzó ARRIBA EMA(21) en última vela 15m cerrada (ver `python3 .claude/scripts/macross.py --file /tmp/bars15m.json --quick` → `SIGNAL=LONG`)
+- [ ] Close > EMA(21) (trend filter confirmado)
+- [ ] Volumen vela cross ≥ promedio últimas 20 velas (no fakeout en vol bajo)
+- [ ] ADX(14, 1H) ≥ 25 (régimen trending real, no chop)
+
+SHORT (espejo):
+- [ ] EMA(9) cruzó ABAJO EMA(21) en última vela 15m cerrada (`SIGNAL=SHORT`)
+- [ ] Close < EMA(21)
+- [ ] Volumen vela cross ≥ promedio últimas 20
+- [ ] ADX(14, 1H) ≥ 25
+
+**Cuándo aplicar el set MA Crossover en lugar de Mean Reversion:**
+- El usuario dice explícitamente "macross", "validar cross", "MA crossover"
+- regime-detector recomendó MA Crossover (ADX 25-40 sin nivel claro Donchian)
+- Si dudas → default Mean Reversion (más probada, más conservadora)
 
 ### 3. Valida reglas duras de sesión
 - ¿Hora actual en MX 06:00-23:59? (fuera 00:00-05:59 → NO-GO; >22:00 → solo si hay tiempo para que el setup cierre antes de 23:59)
@@ -80,12 +102,18 @@ Niveles:
 - SL: XX,XXX (-0.XX%)
 - TP1: XX,XXX (+0.XX%) → cierra 40%, SL→BE
 - TP2: XX,XXX (+0.XX%) → cierra 40%
-- TP3: XX,XXX (+0.XX%) → runner 20%
+- TP3: XX,XXX → runner 20%
+  └─ Modo recomendado (ADX=<v>): [TARGET FIJO 6×SL | TRAILING EMA(20) 15m vía `/trail`]
 
 Position size: $X de margen con Xx leverage
 
 ENTRA AHORA. Pon SL + TPs inmediatamente.
 ```
+
+### Regla auto-selección TP3 modo según ADX(1H)
+- `ADX >= 25` → recomendar **TRAILING EMA(20)** (modo B). Razón: trend confirmado, 6×SL deja gain on table.
+- `ADX < 25` → recomendar **TARGET FIJO 6×SL** (modo A). Razón: range/transición, EMA puede whipsawear.
+- Si error al leer ADX → default modo A + nota "ADX no disponible, usa target fijo por seguridad".
 
 ### Si NO-GO:
 ```
@@ -123,6 +151,12 @@ ESPERA. No entres.
 - Si 4/4 → ENTRA
 - Si 3/4 → espera vela que complete el cuarto
 - Si 2/4 o menos → no es tu setup hoy
+
+### Si el usuario pide validar MA Crossover específicamente
+- Aplica los 4 filtros de la sección "Para MA Crossover" (cross + close>EMA(21) + vol + ADX)
+- Reporta SIGNAL del helper macross.py textualmente (LONG / SHORT / BULL_TREND_NO_CROSS / BEAR_TREND_NO_CROSS / NEUTRAL)
+- Si SIGNAL es BULL_TREND_NO_CROSS o BEAR_TREND_NO_CROSS → 3/4 max (no hay cross fresh) → NO-GO, espera próximo cross
+- Si ADX < 25 → automatic NO-GO ("régimen no trending, MA Crossover no aplica — usa Mean Reversion")
 
 ### Si es fuera de horario
 - Recuérdale la ventana MX 06:00-23:59 (cripto 24/7 pero no dormir con trade abierto)

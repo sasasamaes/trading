@@ -69,7 +69,13 @@ Si ATR × 1.2 < floor del asset → usar el floor.
 ### Fase 3 ($300+): partials extendidos
 - TP1 a **2.0R** (40%)
 - TP2 a **3.5R** (40%, mueve SL a TP1)
-- TP3 a **5.0R** (20%, SL trailing a TP2)
+- TP3 a **5.0R** (20%, SL trailing a TP2) — **o** trailing dinámico EMA(20) en 15m
+
+**Variante TP3 — Trailing EMA(20) 15m** (recomendado si ADX(14, 15m) > 25 al cerrar TP2):
+- En vez de SL discreto a TP2, dejar runner con trail dinámico
+- Cada close 15m → recalcula EMA(20). Si próximo close cruza EMA en contra → exit
+- Helper: `python3 .claude/scripts/trailing_stop.py --side <long|short> --entry X --current Y --file /tmp/bars15m.json`
+- Captura más del trend cuando ADX confirma momentum sostenido
 
 ## 6. Position sizing (phase-aware)
 

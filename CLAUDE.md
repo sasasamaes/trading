@@ -128,6 +128,77 @@ Usar cuando close 4H cae fuera de 73,500-78,300 con volumen >2x promedio.
 
 Config: Donchian(20), buffer 30 pts, vol >300 BTC, SL 0.5%, TP 0.75/1.25/2.0%. Ver backtest_findings.md para detalles históricos.
 
+### Trailing Stop con EMA(20) — modo runner alternativo
+
+Para el TP3 (20% runner), modo de salida #4 según el "Manual del Buen Trader Algorítmico":
+en lugar de target fijo 6×SL, dejar trail con EMA(20) en bars 15m. Salida cuando close 15m
+cruza la EMA en contra. Captura más rally cuando ADX>25.
+
+- Helper: `python3 .claude/scripts/trailing_stop.py --side long --entry X --current Y --file /tmp/bars15m.json`
+- Comando: `/trail <side> <entry>` (auto-pull de bars vía MCP)
+- Default `ema=20`, threshold de toque 0.1%
+
+### ADX(14) en regime-detector
+
+`/regime` ahora reporta ADX(14) explícito (1H bars):
+- ADX < 20 → RANGE_CHOP (Mean Reversion o stand-aside)
+- ADX 25–30 → TREND_LEVE (pullback en dirección)
+- ADX 30–40 → TREND_FUERTE (Breakout/Momentum)
+- ADX > 40 → TREND_EXTREMO (no scalping reversal)
+- Direction = +DI vs -DI
+
+Helper: `python3 .claude/scripts/adx_calc.py --file /tmp/bars1h.json --quick`
+
+### Out-of-sample backtest (anti-overfit)
+
+`/backtest` y backtest-runner SIEMPRE hacen split temporal 70/30 ahora. La config "ganadora"
+del ranking se valida con `report_oos(train_metrics, test_metrics)`:
+- **PASS** → recomendación con confianza moderada
+- **WARN** → reportar con advertencia
+- **FAIL** → declarado como overfit, NO recomendar
+
+Helper: `python3 .claude/scripts/backtest_split.py --train '{...}' --test '{...}'`
+
+### MA Crossover (EMA 9/21) — 3ª estrategia para TRENDING
+
+Cuando régimen es TREND_LEVE/FUERTE (ADX 25-40) y no hay nivel claro Donchian:
+- **LONG**: EMA(9) cruza arriba de EMA(21) AND close > EMA(21)
+- **SHORT**: espejo
+- TP3 (20%) usa trailing EMA(21) vía `/trail long X 21`
+
+Comando: `/macross` (auto-pull bars 15m vía MCP)
+Helper: `python3 .claude/scripts/macross.py --file /tmp/bars15m.json --quick`
+
+### Validación per-asset (multi-symbol disparity check)
+
+Para profiles con múltiples assets (FTMO, fotmarkets), valida si Mean Reversion necesita
+thresholds distintos por símbolo. Detecta el principio del PDF: "no hay estrategia
+universal — RED FLAG si te dicen que funciona en cualquier activo".
+
+Comando:
+```bash
+# Crypto via Binance (sin key):
+python3 .claude/scripts/per_asset_backtest.py --crypto BTCUSDT,ETHUSDT --tf 1h --bars 300
+
+# Profile completo:
+python3 .claude/scripts/per_asset_backtest.py --profile fotmarkets
+
+# Forex/indices: pasa --json-dir con un .json por asset
+```
+
+Output: tabla markdown con WR/PF/Ret/DD por asset + flag automático si disparidad WR > 30pp.
+
+### Helpers Python introducidos por el PDF (todos en `.claude/scripts/`)
+
+| Helper | Función | Comando |
+|---|---|---|
+| `adx_calc.py` | ADX(14) + DI + label_regime | `/regime` |
+| `trailing_stop.py` | Eval EMA(20) trail | `/trail` |
+| `backtest_split.py` | Split 70/30 + OOS report | usado por backtest-runner |
+| `macross.py` | EMA(9/21) cross detector | `/macross` |
+| `per_asset_backtest.py` | Backtest multi-asset comparativo | (script directo) |
+| `test_pdf_helpers.py` | 19 sanity tests, corre en `preprompt_check.sh` cada 1h | (auto) |
+
 ### Reglas de invalidación comunes
 
 - 2 SLs consecutivos → **parar ese día**

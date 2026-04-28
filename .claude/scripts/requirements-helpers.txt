@@ -1,0 +1,8 @@
+# Helpers introducidos a partir del Manual del Trader Algorítmico (PDF).
+# Instalar con:  bash .claude/scripts/setup_venv.sh
+#
+# Uso esperado: ningún script REQUIERE estas deps; degradan a "use --json-dir
+# externo" si yfinance no está disponible. Solo per_asset_backtest.py para
+# forex/indices se beneficia.
+
+yfinance>=0.2.40
