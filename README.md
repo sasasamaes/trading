@@ -756,8 +756,57 @@ Recalibra el modelo con data reciente para adaptarse al régimen. Verifica AUC e
 - Credenciales FTMO (login, password, server FTMO-Demo)
 
 **Multi-CLI (opcional, hedge):**
-- **OpenCode** — `curl -fsSL https://opencode.ai/install | bash` (free)
+- **OpenCode** — `curl -fsSL https://opencode.ai/install | bash` (free, soporte total v2)
 - **Codex** — OpenAI API key + `npm install -g @openai/codex` (adapter UNTESTED)
+
+### Usar este proyecto en OpenCode (soporte total)
+
+El proyecto tiene **soporte completo** para OpenCode (https://opencode.ai/docs/es) además de Claude Code. La fuente de verdad es `system/` (commands, agents, skills, mcp); `adapters/opencode/` traduce automáticamente a `.opencode/` + `opencode.json` raíz.
+
+**Primer uso:**
+```bash
+# 1. Genera .opencode/ + opencode.json (idempotente, cero side effects)
+bash adapters/opencode/install.sh
+
+# 2. Verifica
+python3 -m pytest adapters/opencode/test_transform.py -v   # 15 tests
+
+# 3. Lanza OpenCode dentro del repo
+cd /Users/josecampos/Documents/wally-trader
+opencode
+```
+
+**Qué obtienes:**
+- `opencode.json` raíz con `model`, `instructions: [CLAUDE.md, AGENTS.md]`, `permission`, `mcp.tradingview`, `watcher.ignore`
+- `AGENTS.md` raíz — leído por OpenCode automáticamente al iniciar sesión
+- `.opencode/agents/` — 12 subagents (`@morning-analyst`, `@regime-detector`, etc.) auto-traducidos
+- `.opencode/commands/` — 29 slash commands (`/morning`, `/profile`, `/risk`, etc.)
+- `.opencode/skills/` — symlink a `system/skills/` (14 skills técnicas)
+- `.opencode/config.json` — back-compat (legacy MCP block)
+
+**Auto-sync:** un git pre-commit hook (instalado por `install.sh`) regenera `.opencode/` + `opencode.json` cada vez que tocas `system/commands/`, `system/agents/`, o `system/mcp/`. No tienes que ejecutar el adapter manualmente.
+
+**Watcher mode (opcional, durante dev):**
+```bash
+brew install fswatch
+bash adapters/opencode/watch.sh   # daemon que regenera al editar system/
+```
+
+**Diferencias OpenCode ↔ Claude Code:**
+| Feature | Claude Code | OpenCode |
+|---|---|---|
+| Config primary | `.claude/settings.json` | `opencode.json` (raíz) |
+| Instrucciones | `CLAUDE.md` | `AGENTS.md` + `CLAUDE.md` (vía `instructions`) |
+| Subagents | `.claude/agents/*.md` | `.opencode/agents/*.md` |
+| Slash commands | `.claude/commands/*.md` | `.opencode/commands/*.md` |
+| Hooks (SessionStart, Stop, …) | ✅ nativos | ❌ no soportados — ejecutar manualmente si necesitas |
+| Statusline | ✅ `statusLine.command` | ❌ usa el TUI default; `statusline.sh` aún funciona si lo invocas a mano |
+| MCP | `~/.claude.json` (user-scope) o `.mcp.json` | `mcp` block en `opencode.json` |
+| Plan mode | ❌ | ✅ Tab toggle |
+
+**Limitaciones conocidas (vs Claude Code):**
+- Los hooks `session_start.sh` / `stop_hook.sh` / `preprompt_check.sh` **no se ejecutan automáticamente** en OpenCode. Si necesitas el contexto del SessionStart, córrelo manualmente: `bash .claude/scripts/session_start.sh`.
+- El statusline con USD↔CRC vive en `.claude/scripts/statusline.sh` y solo lo lee Claude Code. En OpenCode lo puedes inspeccionar manualmente con: `bash .claude/scripts/statusline.sh`.
 
 ### Instalación
 

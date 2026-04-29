@@ -1,0 +1,44 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "anthropic/claude-sonnet-4-5",
+  "small_model": "anthropic/claude-haiku-4-5",
+  "default_agent": "build",
+  "share": "manual",
+  "autoupdate": true,
+  "instructions": [
+    "CLAUDE.md",
+    "AGENTS.md"
+  ],
+  "permission": {
+    "bash": "ask",
+    "edit": "ask",
+    "webfetch": "allow"
+  },
+  "mcp": {
+    "tradingview": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "./tradingview-mcp/src/server.js"
+      ],
+      "env": {},
+      "enabled": true
+    }
+  },
+  "watcher": {
+    "ignore": [
+      "node_modules/**",
+      ".git/**",
+      "scripts/ml_system/data/**",
+      "scripts/ml_system/supervised/model/**",
+      "/tmp/**",
+      ".opencode/**",
+      ".claude/cache/**",
+      ".claude/watcher/**"
+    ]
+  },
+  "compaction": {
+    "auto": true,
+    "prune": true
+  }
+}

@@ -132,6 +132,63 @@ def translate_mcp(servers_json_path, config_json_path):
         json.dump(config, f, indent=2)
 
 
+def sync_root_opencode_json(servers_json_path, root_config_path):
+    """Sync `mcp` block of opencode.json (root) with system/mcp/servers.json.
+
+    Preserves model, instructions, permissions, watcher, etc. defined in the
+    root opencode.json. Only the `mcp` key is overwritten. If the root config
+    does not exist, scaffolds a minimal one with sane defaults.
+
+    OpenCode prefers `opencode.json` at repo root over `.opencode/config.json`,
+    so the root file is the source of truth for OC users.
+    """
+    if not Path(servers_json_path).exists():
+        return False
+
+    with open(servers_json_path) as f:
+        source = json.load(f)
+
+    # Strip OpenCode-incompatible keys ($comment, etc.) and keep only servers
+    # whose value is a dict (OC schema: top-level is `{name: serverDef}`).
+    raw_servers = source.get('servers', {})
+    servers = {k: v for k, v in raw_servers.items() if isinstance(v, dict)}
+
+    if Path(root_config_path).exists():
+        with open(root_config_path) as f:
+            cfg = json.load(f)
+    else:
+        # Scaffold minimal opencode.json with project-aware defaults.
+        cfg = {
+            "$schema": "https://opencode.ai/config.json",
+            "model": "anthropic/claude-sonnet-4-5",
+            "small_model": "anthropic/claude-haiku-4-5",
+            "share": "manual",
+            "instructions": ["CLAUDE.md", "AGENTS.md"],
+            "permission": {
+                "bash": "ask",
+                "edit": "ask",
+                "webfetch": "allow"
+            },
+            "watcher": {
+                "ignore": [
+                    "node_modules/**",
+                    ".git/**",
+                    ".opencode/**",
+                    "/tmp/**"
+                ]
+            }
+        }
+
+    # OpenCode root config places servers directly under `mcp`, not `mcp.servers`.
+    cfg['mcp'] = servers
+
+    Path(root_config_path).parent.mkdir(parents=True, exist_ok=True)
+    with open(root_config_path, 'w') as f:
+        json.dump(cfg, f, indent=2)
+        f.write("\n")
+    return True
+
+
 def _ensure_skills_symlink(system_dir, opencode_dir):
     """Create .opencode/skills symlink if not present."""
     skills_link = opencode_dir / 'skills'
@@ -181,18 +238,24 @@ def main():
         translate_agent(src, dst_agent_dir / src.name)
         agent_count += 1
 
-    # MCP
+    # MCP — write to legacy .opencode/config.json (back-compat) AND opencode.json (root, OC primary)
     mcp_src = system_dir / 'mcp' / 'servers.json'
-    mcp_dst = opencode_dir / 'config.json'
+    legacy_dst = opencode_dir / 'config.json'
+    root_dst = repo / 'opencode.json'
+    mcp_synced_root = False
     if mcp_src.exists():
-        translate_mcp(mcp_src, mcp_dst)
+        translate_mcp(mcp_src, legacy_dst)
+        mcp_synced_root = sync_root_opencode_json(mcp_src, root_dst)
 
     # Skills — symlink (identical format)
     _ensure_skills_symlink(system_dir, opencode_dir)
 
     print(f"✓ Translated {cmd_count} commands → .opencode/commands/")
     print(f"✓ Translated {agent_count} agents → .opencode/agents/")
-    print(f"✓ Merged MCP into .opencode/config.json")
+    if mcp_src.exists():
+        print(f"✓ Merged MCP into .opencode/config.json")
+        if mcp_synced_root:
+            print(f"✓ Synced MCP block in opencode.json (root)")
     print(f"✓ Symlinked skills → ../system/skills")
 
 

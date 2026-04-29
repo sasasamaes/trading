@@ -1,0 +1,15 @@
+{
+  "mcp": {
+    "servers": {
+      "tradingview": {
+        "type": "stdio",
+        "command": "node",
+        "args": [
+          "./tradingview-mcp/src/server.js"
+        ],
+        "env": {},
+        "enabled": true
+      }
+    }
+  }
+}

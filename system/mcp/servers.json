@@ -1,0 +1,12 @@
+{
+  "$comment": "MCP servers for this project. Used by adapters to generate Claude Code (.mcp.json), OpenCode (opencode.json), and Codex (config.toml) configs. Path to TV server is relative to repo root for portability.",
+  "servers": {
+    "tradingview": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["./tradingview-mcp/src/server.js"],
+      "env": {},
+      "enabled": true
+    }
+  }
+}

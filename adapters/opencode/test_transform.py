@@ -208,3 +208,85 @@ def test_translate_mcp_preserves_existing_config(tmp_path):
     assert loaded['theme'] == 'dark'  # preserved
     assert loaded['model'] == 'claude-sonnet-4'  # preserved
     assert 'mcp' in loaded  # added
+
+
+def test_sync_root_opencode_json_scaffolds_when_missing(tmp_path):
+    """If root opencode.json does not exist, sync_root scaffolds a minimal one."""
+    src = tmp_path / "servers.json"
+    src.write_text(json.dumps({
+        "servers": {
+            "tradingview": {
+                "type": "stdio",
+                "command": "node",
+                "args": ["./tradingview-mcp/src/server.js"],
+                "env": {}
+            }
+        }
+    }))
+    root = tmp_path / "opencode.json"
+    assert not root.exists()
+    ok = transform.sync_root_opencode_json(src, root)
+    assert ok is True
+
+    cfg = json.loads(root.read_text())
+    assert cfg['$schema'] == 'https://opencode.ai/config.json'
+    assert 'CLAUDE.md' in cfg['instructions']
+    assert 'AGENTS.md' in cfg['instructions']
+    # Root opencode.json places servers directly under `mcp`, NOT `mcp.servers`
+    assert 'tradingview' in cfg['mcp']
+    assert cfg['mcp']['tradingview']['command'] == 'node'
+
+
+def test_sync_root_opencode_json_preserves_user_overrides(tmp_path):
+    """If root opencode.json already exists with custom model/permission, sync only updates `mcp` block."""
+    src = tmp_path / "servers.json"
+    src.write_text(json.dumps({
+        "servers": {"tradingview": {"command": "node", "args": [], "env": {}}}
+    }))
+    root = tmp_path / "opencode.json"
+    root.write_text(json.dumps({
+        "$schema": "https://opencode.ai/config.json",
+        "model": "anthropic/claude-opus-4-7",
+        "default_agent": "review",
+        "permission": {"bash": "deny"},
+        "instructions": ["CUSTOM.md"],
+        "mcp": {"oldserver": {"command": "stale"}}
+    }))
+
+    transform.sync_root_opencode_json(src, root)
+
+    cfg = json.loads(root.read_text())
+    assert cfg['model'] == 'anthropic/claude-opus-4-7'  # preserved
+    assert cfg['default_agent'] == 'review'  # preserved
+    assert cfg['permission']['bash'] == 'deny'  # preserved
+    assert cfg['instructions'] == ['CUSTOM.md']  # preserved
+    # Only mcp is overwritten
+    assert 'tradingview' in cfg['mcp']
+    assert 'oldserver' not in cfg['mcp']  # replaced, not merged
+
+
+def test_sync_root_opencode_json_skips_comment_keys(tmp_path):
+    """The $comment key in servers.json must not leak into opencode.json mcp block."""
+    src = tmp_path / "servers.json"
+    src.write_text(json.dumps({
+        "$comment": "This is metadata, not a server",
+        "servers": {
+            "$comment": "ignored",
+            "tradingview": {"command": "node", "args": [], "env": {}}
+        }
+    }))
+    root = tmp_path / "opencode.json"
+    transform.sync_root_opencode_json(src, root)
+
+    cfg = json.loads(root.read_text())
+    assert '$comment' not in cfg['mcp']
+    assert 'tradingview' in cfg['mcp']
+
+
+def test_sync_root_opencode_json_returns_false_when_no_servers_file(tmp_path):
+    """Graceful skip when system/mcp/servers.json doesn't exist."""
+    src = tmp_path / "doesnotexist.json"
+    root = tmp_path / "opencode.json"
+    ok = transform.sync_root_opencode_json(src, root)
+    assert ok is False
+    assert not root.exists()

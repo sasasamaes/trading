@@ -9,6 +9,10 @@
 !package-lock.json
 !.claude/settings.json
 !.claude/**/*.json
+# OpenCode soporte total — config primary (root) + MCP source-of-truth + legacy back-compat
+!opencode.json
+!system/mcp/servers.json
+!.opencode/config.json
 
 # Screenshots (can be large)
 tradingview-mcp/screenshots/

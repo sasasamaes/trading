@@ -1,6 +1,6 @@
-# OpenCode adapter
+# OpenCode adapter (v2 — soporte total)
 
-Genera `.opencode/` desde `system/` con translation del formato Claude Code al OpenCode.
+Genera `.opencode/` + `opencode.json` raíz desde `system/` con translation del formato Claude Code al OpenCode.
 
 ## Primera vez
 
@@ -9,9 +9,11 @@ bash adapters/opencode/install.sh
 ```
 
 Hace:
-1. Genera `.opencode/commands/`, `.opencode/agents/`, `.opencode/config.json`
-2. Symlinks `.opencode/skills → ../system/skills/` (formato compatible, zero translation)
-3. Instala git pre-commit hook para auto-sync futuro
+1. Genera `.opencode/commands/`, `.opencode/agents/`, `.opencode/config.json` (legacy)
+2. Sincroniza `mcp` block en `opencode.json` raíz (preserva model/permissions/instructions del usuario)
+3. Symlinks `.opencode/skills → ../system/skills/` (formato compatible, zero translation)
+4. Instala git pre-commit hook v2 (auto-sync futuro)
+5. Auto-upgrade v1 → v2 si detecta hook legacy
 
 ## Auto-sync via git hook
 
@@ -45,9 +47,15 @@ Corre un daemon que regenera `.opencode/` cada vez que modificas `system/`. Úti
 - Symlink `.opencode/skills → ../system/skills/`
 - Zero translation (OpenCode docs confirm mismo frontmatter `name, description`)
 
-### MCP
-- `system/mcp/servers.json` → merged en `.opencode/config.json` bajo key `mcp.servers`
-- Preserva otros settings en config.json si existen
+### MCP (doble destino)
+- `system/mcp/servers.json` → merged en `.opencode/config.json` bajo key `mcp.servers` (legacy back-compat)
+- También sincronizado en `opencode.json` raíz bajo key `mcp` (formato OC primary, sin nested `servers`)
+- En el raíz preserva `model`, `default_agent`, `instructions`, `permission`, `watcher`, `compaction` si existen
+- Filtra `$comment` y otras claves no-server
+
+### Root `opencode.json` (OC primary config)
+- Si no existe → scaffold con defaults (model sonnet-4-5, instructions=[CLAUDE.md, AGENTS.md], permission ask, watcher.ignore común)
+- Si existe → solo `mcp` se reescribe; user overrides (model, default_agent, etc.) intactos
 
 ## Tests
 
@@ -55,7 +63,7 @@ Corre un daemon que regenera `.opencode/` cada vez que modificas `system/`. Úti
 python3 -m pytest adapters/opencode/test_transform.py -v
 ```
 
-11 tests cubren commands, agents, MCP, edge cases.
+15 tests cubren commands, agents, MCP legacy, MCP root sync (scaffold/preserve/comment-filter/missing-source), edge cases.
 
 ## Troubleshooting
 
